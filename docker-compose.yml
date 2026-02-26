@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  # ----------Microservices----------
+  repository:
+    build:
+      context: ./src/services/repository
+    ports:
+      - "8080:80"
+    environment:
+      - ASPDOTNET_HTTP_PORT=80
+    depends_on:
+      - repo-db
+
+  # ----------Database----------
+  repo-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: omega
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: repo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - repo_data:/var/lib/postgresql/data
+
+volumes:
+  repo_data:
