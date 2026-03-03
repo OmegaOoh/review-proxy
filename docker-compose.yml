@@ -11,6 +11,15 @@ services:
       - ASPDOTNET_HTTP_PORT=80
     depends_on:
       - repo-db
+  identity:
+    build:
+      context: ./src/services/identity
+    ports:
+      - "8081:80"
+    environment:
+      - ASPDOTNET_HTTP_PORT=80
+    depends_on:
+      - repo-db
 
   # ----------Database----------
   repo-db:
@@ -23,6 +32,17 @@ services:
       - "5432:5432"
     volumes:
       - repo_data:/var/lib/postgresql/data
+
+  identity-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: identity_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - identity_data:/var/lib/postgresql/data
 
 volumes:
   repo_data:
