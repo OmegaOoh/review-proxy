@@ -16,7 +16,7 @@ services:
   repo-db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: omega
+      POSTGRES_USER: user
       POSTGRES_PASSWORD: your_secure_password
       POSTGRES_DB: repo_db
     ports:
