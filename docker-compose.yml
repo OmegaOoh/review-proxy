@@ -2,22 +2,35 @@ version: "3.8"
 
 services:
   # ----------Microservices----------
+  gateway:
+    build:
+      context: ./src/gateway
+      entrypoint: ["dotnet", "gateway.dll"]
+    ports:
+      - "8000:80"
+    environment:
+      - ASPNETCORE_HTTP_PORTS=80
+    depends_on:
+      - repository
+      - identity
   repository:
     build:
       context: ./src/services/repository
+      entrypoint: ["dotnet", "repository.dll"]
     ports:
-      - "8080:80"
+      - "5246:80"
     environment:
-      - ASPDOTNET_HTTP_PORT=80
+      - ASPNETCORE_HTTP_PORTS=80
     depends_on:
       - repo-db
   identity:
     build:
       context: ./src/services/identity
+      entrypoint: ["dotnet", "identity.dll"]
     ports:
-      - "8081:80"
+      - "5074:80"
     environment:
-      - ASPDOTNET_HTTP_PORT=80
+      - ASPNETCORE_HTTP_PORTS=80
     depends_on:
       - repo-db
 
@@ -46,3 +59,4 @@ services:
 
 volumes:
   repo_data:
+  identity_data:
