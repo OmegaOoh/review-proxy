@@ -20,6 +20,5 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
 app.UseHealthChecks("/health");
 app.Run();
