@@ -40,8 +40,8 @@ services:
   identity-db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: identity_db
     ports:
       - "5433:5432"
@@ -51,8 +51,8 @@ services:
   repo-db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: repo_db
     ports:
       - "5432:5432"

@@ -5,7 +5,7 @@ namespace Identity.Data
 {
     public class IdentityDBContext(DbContextOptions<IdentityDBContext> options) : DbContext(options)
     {
-        public DbSet<UserEntry> Repositories => Set<UserEntry>();
+        public DbSet<UserEntry> Users => Set<UserEntry>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
