@@ -3,9 +3,9 @@ using Repository.Models;
 using Microsoft.AspNetCore.Mvc;
 using Repository.Models.Dtos;
 
-namespace Repository.Services;
+namespace Repository.APIs;
 
-public static class RepositoryServices
+public static class RepositoryEndpoints
 {
     public static void MapRepositoryEndpoints(this IEndpointRouteBuilder app)
     {

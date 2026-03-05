@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Repository.Data;
 using Repository.Services;
 using Repository.Interfaces;
+using Repository.APIs;
 
 var builder = WebApplication.CreateBuilder(args);
 
