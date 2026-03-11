@@ -59,8 +59,8 @@ onMounted(() => {
             >
                 <div class="flex items-center space-x-4 mb-4">
                     <img
-                        v-if="user.gitHubAvatarUrl"
-                        :src="user.gitHubAvatarUrl"
+                        v-if="user.gitHubUsername"
+                        :src="`https://github.com/${user.gitHubUsername}.png`"
                         alt="Avatar"
                         class="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-700"
                     />
