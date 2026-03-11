@@ -10,7 +10,7 @@ services:
       - "8000:80"
     environment:
       - ASPNETCORE_HTTP_PORTS=80
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=compose
     depends_on:
       - repository
       - identity
@@ -23,7 +23,7 @@ services:
       - "5247:80"
     environment:
       - ASPNETCORE_HTTP_PORTS=80
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=compose
     depends_on:
       - repo-db
 
@@ -35,7 +35,7 @@ services:
       - "5246:80"
     environment:
       - ASPNETCORE_HTTP_PORTS=80
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=compose
       - GitHub__ClientId=${GitHub__ClientId}
       - GitHub__ClientSecret=${GitHub__ClientSecret}
     depends_on:
