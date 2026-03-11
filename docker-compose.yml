@@ -36,8 +36,10 @@ services:
     environment:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_ENVIRONMENT=Development
+      - GitHub__ClientId=${GitHub__ClientId}
+      - GitHub__ClientSecret=${GitHub__ClientSecret}
     depends_on:
-      - repo-db
+      - identity-db
 
   # ----------Database----------
   identity-db:
