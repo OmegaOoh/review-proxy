@@ -46,6 +46,26 @@ public static class IdentityEndpoints
             return Results.Ok(new { User = dbUser, Token = token });
         });
 
+        group.MapPost("/ensure", async (EnsureRequest request, IIdentityService identityService) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.GitHubId))
+            {
+                return Results.BadRequest("GitHubId is required.");
+            }
+
+            var dbUser = await identityService.GetUserByGitHubIdAsync(request.GitHubId);
+
+            if (dbUser == null)
+            {
+                dbUser = await identityService.CreateUserAsync(
+                    request.GitHubId,
+                    request.Username,
+                    request.AvatarUrl);
+            }
+
+            return Results.Ok(dbUser);
+        }).RequireAuthorization();
+
         // JWT-protected endpoint for already-authenticated clients to retrieve their own profile.
         group.MapGet("/me", async (ClaimsPrincipal user, IIdentityService identityService) =>
         {
@@ -70,6 +90,48 @@ public static class IdentityEndpoints
 
             return Results.Ok(dbUser);
 
+        }).RequireAuthorization();
+
+        // Endpoint to get all users
+        group.MapGet("/", async ([FromQuery] string? query, IIdentityService identityService) =>
+        {
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                // Proxy to github users
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+
+                try
+                {
+                    var response = await client.GetAsync($"https://api.github.com/search/users?q={query}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadFromJsonAsync<GitHubSearchResponse>();
+                        if (content?.Items != null)
+                        {
+                            var tasks = content.Items.Select(async item =>
+                            {
+                                var dbUser = await identityService.GetUserByGitHubIdAsync(item.Id.ToString());
+                                if (dbUser == null)
+                                {
+                                    dbUser = await identityService.CreateUserAsync(item.Id.ToString(), item.Login, item.AvatarUrl);
+                                }
+                                return dbUser;
+                            });
+
+                            var ensuredUsers = await Task.WhenAll(tasks);
+                            return Results.Ok(ensuredUsers);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback to local DB if github fails
+                }
+            }
+
+            var users = await identityService.GetUsersAsync(query);
+            return Results.Ok(users);
         }).RequireAuthorization();
     }
 
@@ -100,3 +162,18 @@ public static class IdentityEndpoints
 
 // Request body for the /exchange endpoint
 public record ExchangeRequest(string GitHubId, string Username, string? AvatarUrl);
+
+public record EnsureRequest(string GitHubId, string Username, string? AvatarUrl);
+
+public class GitHubSearchResponse
+{
+    public List<GitHubUserItem> Items { get; set; } = new();
+}
+
+public class GitHubUserItem
+{
+    public long Id { get; set; }
+    public string Login { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("avatar_url")]
+    public string? AvatarUrl { get; set; }
+}

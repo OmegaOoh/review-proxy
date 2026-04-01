@@ -17,7 +17,7 @@ public class RepositoryService(RepoDbContext dbContext) : IRepositoryService
         }
     }
 
-    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description)
+    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, List<Guid> auditors)
     {
         var entry = new RepositoryEntry
         {
@@ -25,6 +25,7 @@ public class RepositoryService(RepoDbContext dbContext) : IRepositoryService
             GitHubRepoId = githubRepoId,
             OwnerId = ownerId,
             Description = description,
+            AuditorsIds = auditors.Select(a => a.ToString()).Where(a => a != ownerId).Distinct().ToList(),
             CreatedAt = DateTime.UtcNow
         };
 

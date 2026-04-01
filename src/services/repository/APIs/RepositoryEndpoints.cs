@@ -50,7 +50,7 @@ public static class RepositoryEndpoints
                 return Results.BadRequest("Invalid or inaccessible GitHub repository.");
             }
 
-            var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description);
+            var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description, depot.Auditors);
             return Results.Created($"/api/repositories/{id}", id);
         }).RequireAuthorization();
 

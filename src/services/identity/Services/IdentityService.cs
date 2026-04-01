@@ -50,4 +50,14 @@ public class IdentityService(IdentityDBContext context) : IIdentityService
 
         return user;
     }
+
+    public async Task<List<UserEntry>> GetUsersAsync(string? query = null)
+    {
+        var dbQuery = context.Set<UserEntry>().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            dbQuery = dbQuery.Where(u => u.GitHubUsername.ToLower().Contains(query.ToLower()));
+        }
+        return await dbQuery.ToListAsync();
+    }
 }
