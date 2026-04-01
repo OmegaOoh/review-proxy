@@ -3,6 +3,7 @@ version: "3.8"
 services:
   # ----------Microservices----------
   gateway:
+    restart: always
     build:
       context: ./src/gateway
       entrypoint: ["dotnet", "gateway.dll"]
@@ -15,8 +16,10 @@ services:
       - repository
       - identity
       - syncing
+      - issue
 
   repository:
+    restart: always
     build:
       context: ./src/services/repository
       entrypoint: ["dotnet", "repository.dll"]
@@ -29,6 +32,7 @@ services:
       - repo-db
 
   identity:
+    restart: always
     build:
       context: ./src/services/identity
       entrypoint: ["dotnet", "identity.dll"]
@@ -41,6 +45,7 @@ services:
       - identity-db
 
   syncing:
+    restart: always
     build:
       context: ./src/services/syncing
       entrypoint: ["dotnet", "syncing.dll"]
@@ -54,8 +59,22 @@ services:
     depends_on:
       - identity
 
+  issue:
+    restart: always
+    build:
+      context: ./src/services/issue
+      entrypoint: ["dotnet", "issue.dll"]
+    ports:
+      - "5249:80"
+    environment:
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_ENVIRONMENT=compose
+    depends_on:
+      - issue-db
+
   # ----------Database----------
   identity-db:
+    restart: always
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: postgres
@@ -67,6 +86,7 @@ services:
       - identity_data:/var/lib/postgresql/data
 
   repo-db:
+    restart: always
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: postgres
@@ -77,6 +97,19 @@ services:
     volumes:
       - repo_data:/var/lib/postgresql/data
 
+  issue-db:
+    restart: always
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: issue_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - issue_data:/var/lib/postgresql/data
+
 volumes:
   repo_data:
   identity_data:
+  issue_data:
