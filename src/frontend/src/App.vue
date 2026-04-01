@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useAuth } from "./composables/useAuth";
 import UserProfile from "./components/UserProfile.vue";
 import RepositoryManager from "./components/RepositoryManager.vue";
+import IssueManager from "./components/IssueManager.vue";
 import Login from "./components/Login.vue";
 
 const appTitle = ref("Review Proxy");
@@ -38,6 +39,7 @@ onMounted(() => {
                     </div>
 
                     <RepositoryManager :user="user" />
+                    <IssueManager :user="user" />
                 </template>
                 <template v-else>
                     <Login />
