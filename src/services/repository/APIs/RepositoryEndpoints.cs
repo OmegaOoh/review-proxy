@@ -2,6 +2,8 @@ using Repository.Interfaces;
 using Repository.Models;
 using Microsoft.AspNetCore.Mvc;
 using Repository.Models.Dtos;
+using System.Security.Claims;
+using System.Net.Http;
 
 namespace Repository.APIs;
 
@@ -10,6 +12,7 @@ public static class RepositoryEndpoints
     public static void MapRepositoryEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/repositories");
+
         group.MapGet("/", async (IRepositoryService service,
             [FromQuery] Guid? ownerId,
             [FromQuery] RepositoryRole? role) =>
@@ -21,11 +24,35 @@ public static class RepositoryEndpoints
             return Results.Ok(results);
         });
 
-        group.MapPost("/", async (IRepositoryService service, [FromBody] DepositRequest depot) =>
+        group.MapPost("/", async (
+            IRepositoryService service,
+            [FromBody] DepositRequest depot,
+            ClaimsPrincipal user,
+            IHttpClientFactory httpClientFactory) =>
         {
-            var id = await service.DepositAsync(depot.GithubRepoId, depot.OwnerId, depot.Description);
+            var ownerIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(ownerIdClaim)) return Results.Unauthorized();
+
+            var usernameClaim = user.FindFirst(ClaimTypes.Name)?.Value;
+            if (string.IsNullOrEmpty(usernameClaim)) return Results.Unauthorized();
+
+            var repoId = depot.GithubRepoId;
+            if (string.IsNullOrWhiteSpace(repoId) || !repoId.StartsWith(usernameClaim + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.BadRequest("Repository must be owned by the authenticated user.");
+            }
+
+            var client = httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+            var response = await client.GetAsync($"https://api.github.com/repos/{repoId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return Results.BadRequest("Invalid or inaccessible GitHub repository.");
+            }
+
+            var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description);
             return Results.Created($"/api/repositories/{id}", id);
-        });
+        }).RequireAuthorization();
 
         group.MapPatch("/{id}", async (IRepositoryService service, Guid id, [FromBody] RepositoryPatchRequest patch) =>
         {
