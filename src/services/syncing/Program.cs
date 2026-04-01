@@ -1,0 +1,69 @@
+using AspNet.Security.OAuth.GitHub;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
+using Scalar.AspNetCore;
+using Syncing.APIs;
+using Syncing.Interfaces;
+using Syncing.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Named HTTP client for service-to-service calls to IdentityService
+builder.Services.AddHttpClient("identity", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:Identity"] ?? "http://identity");
+});
+
+builder.Services.AddScoped<ISyncingService, SyncingService>();
+
+// GitHub OAuth owns the full auth flow in this service.
+// Cookie holds the OAuth session; after /me is called the JWT is handed off to the client.
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GitHubAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.Name = "AppAuthSession";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+})
+.AddGitHub(options =>
+{
+    options.ClientId = builder.Configuration["GitHub:ClientId"]!;
+    options.ClientSecret = builder.Configuration["GitHub:ClientSecret"]!;
+    options.Scope.Add("read:user");
+    // NOTE: update your GitHub OAuth App callback URL to point here when switching from IdentityService
+    options.CallbackPath = "/api/sync/signin-github";
+});
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+app.UseForwardedHeaders();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseHealthChecks("/health");
+app.MapSyncingEndpoints();
+
+app.Run();

@@ -20,7 +20,10 @@ print_usage() {
     echo "  ./dev.sh up                  # Start everything"
     echo "  ./dev.sh build               # Rebuild and start everything"
     echo "  ./dev.sh build gateway       # Rebuild and restart only the gateway service"
+    echo "  ./dev.sh build identity      # Rebuild and restart only the identity service"
+    echo "  ./dev.sh build syncing       # Rebuild and restart only the syncing service"
     echo "  ./dev.sh logs repository     # Tail logs for the repository service"
+    echo "  ./dev.sh logs syncing        # Tail logs for the syncing service"
 }
 
 if [ -z "$COMMAND" ]; then

@@ -12,7 +12,7 @@ const fetchUser = async () => {
             headers["Authorization"] = `Bearer ${token}`;
         }
 
-        const response = await fetch("/api/identities/me", { headers });
+        const response = await fetch("/api/sync/me", { headers });
         if (response.ok) {
             const data = await response.json();
             user.value = data.user;
@@ -29,12 +29,12 @@ const fetchUser = async () => {
 };
 
 const signIn = () => {
-    window.location.href = `/api/identities/signin?returnUrl=${encodeURIComponent(window.location.href)}`;
+    window.location.href = `/api/sync/signin?returnUrl=${encodeURIComponent(window.location.href)}`;
 };
 
 const signOut = () => {
     localStorage.removeItem("token");
-    window.location.href = `/api/identities/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
+    window.location.href = `/api/sync/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
 };
 
 onMounted(() => {

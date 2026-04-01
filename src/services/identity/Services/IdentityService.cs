@@ -7,6 +7,11 @@ namespace Identity.Services;
 
 public class IdentityService(IdentityDBContext context) : IIdentityService
 {
+    public async Task<UserEntry?> GetUserByIdAsync(Guid id)
+    {
+        return await context.Set<UserEntry>().FindAsync(id);
+    }
+
     public async Task<UserEntry?> GetUserByGitHubIdAsync(string githubId)
     {
         return await context.Set<UserEntry>().FirstOrDefaultAsync(u => u.GitHubID == githubId);

@@ -14,6 +14,7 @@ services:
     depends_on:
       - repository
       - identity
+      - syncing
 
   repository:
     build:
@@ -36,10 +37,22 @@ services:
     environment:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_ENVIRONMENT=compose
+    depends_on:
+      - identity-db
+
+  syncing:
+    build:
+      context: ./src/services/syncing
+      entrypoint: ["dotnet", "syncing.dll"]
+    ports:
+      - "5248:80"
+    environment:
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_ENVIRONMENT=compose
       - GitHub__ClientId=${GitHub__ClientId}
       - GitHub__ClientSecret=${GitHub__ClientSecret}
     depends_on:
-      - identity-db
+      - identity
 
   # ----------Database----------
   identity-db:

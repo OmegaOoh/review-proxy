@@ -1,5 +1,4 @@
 using Identity.Interfaces;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
@@ -10,24 +9,44 @@ namespace Identity.APIs;
 
 public static class IdentityEndpoints
 {
-    public static void MapIdentityEndpoints(this IEndpointRouteBuilder app)
+    public static void MapIdentityEndpoints(this IEndpointRouteBuilder app, IConfiguration configuration)
     {
         var group = app.MapGroup("/api/identities");
 
-        group.MapGet("/signin", ([FromQuery] string? returnUrl = "/") =>
+        // Internal service-to-service endpoint called by SyncingService after GitHub OAuth completes.
+        // Upserts the user from GitHub claims and returns the user record alongside a signed JWT.
+        // NOTE: this endpoint is intentionally not Bearer-protected because the caller (SyncingService)
+        // is a trusted internal peer. In production, add a shared-secret header or mTLS.
+        group.MapPost("/exchange", async (ExchangeRequest request, IIdentityService identityService) =>
         {
-            return Results.Challenge(
-                new AuthenticationProperties { RedirectUri = returnUrl },
-                new[] { "GitHub" });
+            if (string.IsNullOrWhiteSpace(request.GitHubId))
+            {
+                return Results.BadRequest("GitHubId is required.");
+            }
+
+            var dbUser = await identityService.GetUserByGitHubIdAsync(request.GitHubId);
+
+            if (dbUser == null)
+            {
+                dbUser = await identityService.CreateUserAsync(
+                    request.GitHubId,
+                    request.Username,
+                    request.AvatarUrl);
+            }
+            else
+            {
+                dbUser = await identityService.UpdateUserAsync(
+                    dbUser.Id,
+                    request.Username,
+                    request.AvatarUrl);
+            }
+
+            var token = IssueJwt(dbUser.Id, dbUser.GitHubUsername, configuration);
+
+            return Results.Ok(new { User = dbUser, Token = token });
         });
 
-        group.MapGet("/signout", ([FromQuery] string? returnUrl = "/") =>
-        {
-            return Results.SignOut(
-                new AuthenticationProperties { RedirectUri = returnUrl },
-                new[] { Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme });
-        });
-
+        // JWT-protected endpoint for already-authenticated clients to retrieve their own profile.
         group.MapGet("/me", async (ClaimsPrincipal user, IIdentityService identityService) =>
         {
             if (user.Identity?.IsAuthenticated != true)
@@ -35,41 +54,49 @@ public static class IdentityEndpoints
                 return Results.Unauthorized();
             }
 
-            var githubId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var username = user.FindFirst(ClaimTypes.Name)?.Value ?? "unknown";
-            var avatarUrl = user.FindFirst("urn:github:avatar")?.Value;
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (githubId == null)
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             {
                 return Results.Unauthorized();
             }
 
-            var dbUser = await identityService.GetUserByGitHubIdAsync(githubId);
+            var dbUser = await identityService.GetUserByIdAsync(userId);
+
             if (dbUser == null)
             {
-                dbUser = await identityService.CreateUserAsync(githubId, username, avatarUrl);
-            }
-            else
-            {
-                dbUser = await identityService.UpdateUserAsync(dbUser.Id, username, avatarUrl);
+                return Results.NotFound();
             }
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes("super_secret_key_that_is_long_enough_for_hmacsha256");
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
-                    new Claim(ClaimTypes.Name, dbUser.GitHubUsername)
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var jwt = tokenHandler.WriteToken(token);
+            return Results.Ok(dbUser);
 
-            return Results.Ok(new { User = dbUser, Token = jwt });
-        }).RequireAuthorization(new Microsoft.AspNetCore.Authorization.AuthorizeAttribute { AuthenticationSchemes = "Cookies,Bearer" });
+        }).RequireAuthorization();
+    }
+
+    private static string IssueJwt(Guid userId, string username, IConfiguration configuration)
+    {
+        var key = Encoding.UTF8.GetBytes(
+            configuration["Jwt:Key"] ?? "super_secret_key_that_is_long_enough_for_hmacsha256");
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, username)
+            }),
+            Expires = DateTime.UtcNow.AddDays(7),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
     }
 }
+
+// Request body for the /exchange endpoint
+public record ExchangeRequest(string GitHubId, string Username, string? AvatarUrl);

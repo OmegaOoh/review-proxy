@@ -1,15 +1,13 @@
+using Identity.APIs;
 using Identity.Data;
-using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
-using AspNet.Security.OAuth.GitHub;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Identity.Interfaces;
 using Identity.Services;
-using Identity.APIs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +17,6 @@ builder.Services.AddDbContext<IdentityDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityDbConnection")));
 
 builder.Services.AddScoped<IIdentityService, IdentityService>();
-builder.Services.AddAuthorization();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -28,36 +25,24 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Authentication
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "GitHub";
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// Identity only validates JWTs it previously issued.
+// GitHub OAuth lives entirely in SyncingService.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "super_secret_key_that_is_long_enough_for_hmacsha256"))
-    };
-})
-.AddCookie(options =>
-{
-    options.Cookie.Name = "AppAuthSession";
-    options.Cookie.SameSite = SameSiteMode.Lax;
-})
-.AddGitHub(options =>
-{
-    options.ClientId = builder.Configuration["GitHub:ClientId"]!;
-    options.ClientSecret = builder.Configuration["GitHub:ClientSecret"]!;
-    options.Scope.Add("read:user");
-    options.CallbackPath = "/api/identities/signin-github";
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:Key"] ?? "super_secret_key_that_is_long_enough_for_hmacsha256"))
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -69,7 +54,6 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -80,6 +64,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHealthChecks("/health");
-app.MapIdentityEndpoints();
+app.MapIdentityEndpoints(app.Configuration);
 
 app.Run();
