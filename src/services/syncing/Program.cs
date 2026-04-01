@@ -18,10 +18,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Named HTTP client for service-to-service calls to IdentityService
+// Named HTTP client for service-to-service calls to IdentityService.
+// The X-Internal-Secret header is attached here so SyncingService itself stays stateless.
 builder.Services.AddHttpClient("identity", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:Identity"] ?? "http://identity");
+
+    var secret = builder.Configuration["Services:InternalSecret"];
+    if (!string.IsNullOrWhiteSpace(secret))
+        client.DefaultRequestHeaders.Add("X-Internal-Secret", secret);
 });
 
 builder.Services.AddScoped<ISyncingService, SyncingService>();
@@ -44,7 +49,6 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["GitHub:ClientId"]!;
     options.ClientSecret = builder.Configuration["GitHub:ClientSecret"]!;
     options.Scope.Add("read:user");
-    // NOTE: update your GitHub OAuth App callback URL to point here when switching from IdentityService
     options.CallbackPath = "/api/sync/signin-github";
 });
 
@@ -54,7 +58,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")
 {
     app.MapOpenApi();
     app.MapScalarApiReference();

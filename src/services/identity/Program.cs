@@ -16,6 +16,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddDbContext<IdentityDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityDbConnection")));
 
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -54,7 +55,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
@@ -64,6 +65,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHealthChecks("/health");
-app.MapIdentityEndpoints(app.Configuration);
+app.MapIdentityEndpoints();
 
 app.Run();

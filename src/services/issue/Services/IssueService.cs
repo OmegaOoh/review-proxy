@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Issue.Data;
 using Issue.Interfaces;
@@ -38,16 +35,10 @@ public class IssueService : IIssueService
     {
         var issue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id);
 
-        if (issue == null)
-        {
-            return false;
-        }
+        if (issue == null) return false;
 
         // Only allow the owner to delete the issue
-        if (issue.OwnerId != ownerId)
-        {
-            return false;
-        }
+        if (issue.OwnerId != ownerId) return false;
 
         _context.Issues.Remove(issue);
         await _context.SaveChangesAsync();

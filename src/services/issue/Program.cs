@@ -7,7 +7,6 @@ using Issue.APIs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -28,7 +27,6 @@ builder.Services.AddDbContext<IssueDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IssueDbContext")));
 builder.Services.AddHealthChecks();
 
-// Register services
 builder.Services.AddScoped<IIssueService, IssueService>();
 
 var app = builder.Build();
@@ -39,7 +37,6 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")
 {
     app.MapOpenApi();

@@ -7,7 +7,6 @@ using Repository.APIs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -28,7 +27,6 @@ builder.Services.AddDbContext<RepoDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("RepoDbContext")));
 builder.Services.AddHealthChecks();
 
-// Register services
 builder.Services.AddScoped<IRepositoryService, RepositoryService>();
 builder.Services.AddScoped<IAuditorService, AuditorService>();
 
@@ -40,8 +38,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")
 {
     app.MapOpenApi();
     app.MapScalarApiReference();

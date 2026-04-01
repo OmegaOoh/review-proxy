@@ -5,20 +5,37 @@ using Repository.Models;
 
 namespace Repository.Services;
 
-public class RepositoryService(RepoDbContext dbContext) : IRepositoryService
+public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory) : IRepositoryService
 {
-    public async Task DeleteRepositoryAsync(Guid repoId)
+    public async Task<bool> DeleteRepositoryAsync(Guid repoId, string ownerId)
     {
         var entry = await dbContext.Repositories.FindAsync(repoId);
-        if (entry != null)
-        {
-            dbContext.Repositories.Remove(entry);
-            await dbContext.SaveChangesAsync();
-        }
+        if (entry == null) return false;
+
+        // Treat "not owner" the same as "not found" to avoid leaking repository existence
+        if (entry.OwnerId != ownerId) return false;
+
+        dbContext.Repositories.Remove(entry);
+        await dbContext.SaveChangesAsync();
+        return true;
     }
 
-    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, List<Guid> auditors)
+    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string ownerUsername, string description, List<Guid> auditors)
     {
+        if (string.IsNullOrWhiteSpace(githubRepoId) ||
+            !githubRepoId.StartsWith(ownerUsername + "/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Repository must be owned by the authenticated user.");
+        }
+
+        var client = httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+        var response = await client.GetAsync($"https://api.github.com/repos/{githubRepoId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException("Invalid or inaccessible GitHub repository.");
+        }
+
         var entry = new RepositoryEntry
         {
             Id = Guid.NewGuid(),
@@ -31,7 +48,6 @@ public class RepositoryService(RepoDbContext dbContext) : IRepositoryService
 
         dbContext.Repositories.Add(entry);
         await dbContext.SaveChangesAsync();
-
         return entry.Id;
     }
 
@@ -46,13 +62,9 @@ public class RepositoryService(RepoDbContext dbContext) : IRepositoryService
             if (role.HasValue)
             {
                 if (role.Value == RepositoryRole.Owner)
-                {
                     query = query.Where(r => r.OwnerId == ownerIdStr);
-                }
                 else if (role.Value == RepositoryRole.Auditor)
-                {
                     query = query.Where(r => r.AuditorsIds.Contains(ownerIdStr));
-                }
             }
             else
             {
