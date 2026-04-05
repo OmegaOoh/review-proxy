@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import CreateIssueModal from "./CreateIssueModal.vue";
 
 const props = defineProps<{
     user: any;
@@ -34,6 +35,10 @@ const isSearching = ref(false);
 let searchTimeout: any = null;
 
 const allUsersCache = ref<Map<string, any>>(new Map());
+
+// Issue creation state
+const showCreateIssueModal = ref(false);
+const selectedRepoForIssue = ref<any>(null);
 
 const fetchRepositories = async () => {
     loading.value = true;
@@ -292,6 +297,16 @@ const saveAuditors = async () => {
     }
 };
 
+const openCreateIssueModal = (repo: any) => {
+    selectedRepoForIssue.value = repo;
+    showCreateIssueModal.value = true;
+};
+
+const onIssueCreated = () => {
+    showCreateIssueModal.value = false;
+    selectedRepoForIssue.value = null;
+};
+
 onMounted(() => {
     fetchRepositories();
     prefetchAllUsers(); // Best effort to pre-warm cache
@@ -357,14 +372,23 @@ onMounted(() => {
                     class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-auto pt-4 border-t border-gray-100 dark:border-gray-700"
                 >
                     <span>ID: {{ repo.id.substring(0, 8) }}...</span>
-                    <button
-                        v-if="repo.ownerId === props.user.id"
-                        @click="openAuditorsModal(repo)"
-                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
-                    >
-                        <i class="pi pi-users"></i>
-                        Manage Auditors
-                    </button>
+                    <div class="flex gap-2">
+                        <button
+                            @click="openCreateIssueModal(repo)"
+                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 flex items-center gap-1 transition-colors"
+                        >
+                            <i class="pi pi-plus"></i>
+                            Create Issue
+                        </button>
+                        <button
+                            v-if="repo.ownerId === props.user.id"
+                            @click="openAuditorsModal(repo)"
+                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+                        >
+                            <i class="pi pi-users"></i>
+                            Manage Auditors
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -707,4 +731,12 @@ onMounted(() => {
             </div>
         </div>
     </div>
+
+    <CreateIssueModal
+        :repo="selectedRepoForIssue"
+        :user="props.user"
+        :show="showCreateIssueModal"
+        @close="showCreateIssueModal = false"
+        @created="onIssueCreated"
+    />
 </template>
