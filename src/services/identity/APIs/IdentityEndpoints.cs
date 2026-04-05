@@ -63,6 +63,16 @@ public static class IdentityEndpoints
             return Results.Ok(dbUser);
         }).RequireAuthorization();
 
+        group.MapGet("/{id:guid}", async (Guid id, IIdentityService identityService) =>
+        {
+            var dbUser = await identityService.GetUserByIdAsync(id);
+
+            if (dbUser == null)
+                return Results.NotFound();
+
+            return Results.Ok(dbUser);
+        }).RequireAuthorization();
+
         group.MapGet("/", async ([FromQuery] string? query, IIdentityService identityService) =>
         {
             var users = await identityService.GetUsersAsync(query);
