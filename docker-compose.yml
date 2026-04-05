@@ -1,12 +1,10 @@
-version: "3.8"
-
 services:
   # ----------Microservices----------
   gateway:
     restart: always
     build:
       context: ./src/gateway
-      entrypoint: ["dotnet", "gateway.dll"]
+    entrypoint: ["dotnet", "gateway.dll"]
     ports:
       - "8000:80"
     environment:
@@ -22,7 +20,7 @@ services:
     restart: always
     build:
       context: ./src/services/repository
-      entrypoint: ["dotnet", "repository.dll"]
+    entrypoint: ["dotnet", "repository.dll"]
     ports:
       - "5247:80"
     environment:
@@ -35,7 +33,7 @@ services:
     restart: always
     build:
       context: ./src/services/identity
-      entrypoint: ["dotnet", "identity.dll"]
+    entrypoint: ["dotnet", "identity.dll"]
     ports:
       - "5246:80"
     environment:
@@ -48,7 +46,7 @@ services:
     restart: always
     build:
       context: ./src/services/syncing
-      entrypoint: ["dotnet", "syncing.dll"]
+    entrypoint: ["dotnet", "syncing.dll"]
     ports:
       - "5248:80"
     environment:
@@ -63,7 +61,7 @@ services:
     restart: always
     build:
       context: ./src/services/issue
-      entrypoint: ["dotnet", "issue.dll"]
+    entrypoint: ["dotnet", "issue.dll"]
     ports:
       - "5249:80"
     environment:
@@ -71,6 +69,13 @@ services:
       - ASPNETCORE_ENVIRONMENT=compose
     depends_on:
       - issue-db
+
+  frontend:
+    restart: always
+    build:
+      context: ./src/frontend
+    ports:
+      - "3000:80"
 
   # ----------Database----------
   identity-db:
