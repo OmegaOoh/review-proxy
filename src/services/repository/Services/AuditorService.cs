@@ -1,11 +1,15 @@
 using Repository.Data;
 using Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
+using ReviewProxy.Contracts;
 
 namespace Repository.Services;
 
-public class AuditorService(RepoDbContext dbContext) : IAuditorService
+public class AuditorService(RepoDbContext dbContext, IPublishEndpoint publishEndpoint) : IAuditorService
 {
+    private readonly IPublishEndpoint _publishEndpoint = publishEndpoint;
+
     public async Task AddAuditorsAsync(Guid repoId, List<Guid> userId)
     {
         var repo = await dbContext.Repositories.FindAsync(repoId);
@@ -21,7 +25,11 @@ public class AuditorService(RepoDbContext dbContext) : IAuditorService
             }
         }
 
-        await dbContext.SaveChangesAsync();
+        var saved = await dbContext.SaveChangesAsync();
+        if (saved > 0)
+        {
+            await PublishAuditorListAsync(repoId);
+        }
     }
 
     public async Task<List<Guid>> GetAuditorsAsync(Guid repoId)
@@ -52,6 +60,28 @@ public class AuditorService(RepoDbContext dbContext) : IAuditorService
             repo.AuditorsIds.Remove(idStr);
         }
 
-        await dbContext.SaveChangesAsync();
+        var saved = await dbContext.SaveChangesAsync();
+        if (saved > 0)
+        {
+            await PublishAuditorListAsync(repoId);
+        }
+    }
+
+    private async Task PublishAuditorListAsync(Guid repoId)
+    {
+        var repo = await dbContext.Repositories.FindAsync(repoId);
+        if (repo == null) return;
+
+        var auditors = repo.AuditorsIds.Select(Guid.Parse).ToList();
+        if (Guid.TryParse(repo.OwnerId, out var ownerId) && !auditors.Contains(ownerId))
+        {
+            auditors.Add(ownerId);
+        }
+
+        await _publishEndpoint.Publish(new SyncAuditorListEvent
+        {
+            RepositoryId = repoId,
+            Auditors = auditors ?? []
+        });
     }
 }

@@ -18,8 +18,6 @@ public static class RepositoryEndpoints
         {
             var results = await service.GetRepositoriesAsync(ownerId, role);
 
-            if (ownerId.HasValue && results.Count == 0) return Results.NotFound();
-
             return Results.Ok(results);
         });
 

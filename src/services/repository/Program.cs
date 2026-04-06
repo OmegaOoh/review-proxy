@@ -4,6 +4,8 @@ using Repository.Data;
 using Repository.Services;
 using Repository.Interfaces;
 using Repository.APIs;
+using MassTransit;
+using ReviewProxy.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +27,22 @@ builder.Services.AddHttpClient();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<RepoDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("RepoDbContext")));
+
+// MassTransit
+builder.Services.AddMassTransit(options =>
+    {
+        options.UsingRabbitMq((context, cfg) =>
+        {
+            cfg.Host(new Uri(builder.Configuration["MassTransit:Host"] ?? "rabbitmq://localhost:5672"), h =>
+            {
+                h.Username(builder.Configuration["MassTransit:Username"] ?? "guest");
+                h.Password(builder.Configuration["MassTransit:Password"] ?? "guest");
+            });
+
+            cfg.Message<SyncAuditorListEvent>(e => e.SetEntityName("auditor-sync-exchange"));
+        });
+    });
+
 builder.Services.AddHealthChecks();
 
 builder.Services.AddScoped<IRepositoryService, RepositoryService>();

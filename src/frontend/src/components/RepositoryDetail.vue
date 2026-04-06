@@ -76,8 +76,10 @@ const fetchRepo = async () => {
             const allRepos = await response.json();
             repo.value = allRepos.find((r: any) => r.id === repoId);
             if (!repo.value) {
-                throw new Error("Repository not found");
+                error.value = "Repository not found";
             }
+        } else if (response.status === 404) {
+            error.value = "Repository not found";
         } else {
             throw new Error("Failed to fetch repositories");
         }

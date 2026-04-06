@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import CreateIssueModal from "./CreateIssueModal.vue";
+
+const router = useRouter();
 
 const props = defineProps<{
     user: any;
@@ -315,8 +318,17 @@ onMounted(() => {
 
 <template>
     <div class="mt-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div class="flex items-center mb-6">
+            <button
+                @click="router.back()"
+                class="mr-4 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                title="Go Back"
+            >
+                <i class="pi pi-arrow-left"></i>
+            </button>
+            <h2
+                class="text-2xl font-bold text-gray-900 dark:text-white flex-grow"
+            >
                 My Repositories
             </h2>
             <button

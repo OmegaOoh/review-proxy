@@ -19,15 +19,20 @@ services:
   repository:
     restart: always
     build:
-      context: ./src/services/repository
+      context: .
+      dockerfile: src/services/repository/Dockerfile
     entrypoint: ["dotnet", "repository.dll"]
     ports:
       - "5247:80"
     environment:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_ENVIRONMENT=compose
+      - MassTransit__Host=rabbitmq://rabbitmq:5672
     depends_on:
-      - repo-db
+      repo-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   identity:
     restart: always
@@ -114,7 +119,22 @@ services:
     volumes:
       - issue_data:/var/lib/postgresql/data
 
+  # ----------MessageQueue----------
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5672:5672" #AMQP
+      - "15672:15672" #Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
 volumes:
   repo_data:
   identity_data:
   issue_data:
+  rabbitmq_data:
