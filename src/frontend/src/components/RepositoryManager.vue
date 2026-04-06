@@ -374,6 +374,16 @@ onMounted(() => {
                     >
                         {{ repo.githubRepoId || repo.gitHubRepoId }}
                     </h3>
+                    <a
+                        :href="`https://github.com/${repo.githubRepoId || repo.gitHubRepoId}`"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click.stop
+                        class="text-gray-400 hover:text-blue-500 transition-colors ml-2 flex-shrink-0"
+                        title="View on GitHub"
+                    >
+                        <i class="pi pi-external-link"></i>
+                    </a>
                 </div>
                 <p
                     class="text-gray-600 dark:text-gray-300 text-sm mb-4 h-10 overflow-hidden text-ellipsis line-clamp-2 flex-grow"

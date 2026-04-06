@@ -1,4 +1,3 @@
-review-proxy\src\frontend\src\components\CreateIssueModal.vue
 <script setup lang="ts">
 import { ref } from "vue";
 
@@ -85,9 +84,7 @@ const createIssue = async () => {
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white">
                     Create Issue for
-                    {{
-                        repo?.githubRepoId || repo?.gitHubRepoId
-                    }}
+                    {{ repo?.githubRepoId || repo?.gitHubRepoId }}
                 </h3>
                 <button
                     @click="closeModal"

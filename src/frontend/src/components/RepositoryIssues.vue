@@ -20,7 +20,10 @@
             {{ error }}
         </div>
 
-        <div v-else-if="filteredIssues.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <div
+            v-else-if="filteredIssues.length === 0"
+            class="text-center py-8 text-gray-500 dark:text-gray-400"
+        >
             No issues found. Create a new issue to get started.
         </div>
 
@@ -28,35 +31,52 @@
             <div
                 v-for="issue in filteredIssues"
                 :key="issue.id"
-                class="p-4 border rounded-md border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 flex flex-col sm:flex-row justify-between gap-4"
+                class="p-4 border rounded-md border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col sm:flex-row justify-between gap-4"
             >
                 <div>
                     <div class="flex items-center gap-3 mb-2">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        <h3
+                            class="text-lg font-medium text-gray-900 dark:text-white"
+                        >
                             {{ issue.title }}
                         </h3>
                         <span
                             class="px-2 py-1 text-xs font-semibold rounded-full"
                             :class="{
-                                'bg-gray-200 text-gray-800': issue.status === 'Draft',
-                                'bg-blue-100 text-blue-800': issue.status === 'Submitted',
-                                'bg-green-100 text-green-800': issue.status === 'Approved',
-                                'bg-red-100 text-red-800': issue.status === 'Rejected',
+                                'bg-gray-200 text-gray-800':
+                                    issue.status === 'Draft',
+                                'bg-blue-100 text-blue-800':
+                                    issue.status === 'Submitted',
+                                'bg-green-100 text-green-800':
+                                    issue.status === 'Approved',
+                                'bg-red-100 text-red-800':
+                                    issue.status === 'Rejected',
                             }"
                         >
                             {{ issue.status }}
                         </span>
                     </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2 whitespace-pre-line">
+                    <p
+                        class="text-sm text-gray-600 dark:text-gray-300 mb-2 whitespace-pre-line"
+                    >
                         {{ issue.body || "No description provided." }}
                     </p>
                     <div class="text-xs text-gray-500 flex items-center gap-4">
-                        <span><i class="pi pi-user mr-1"></i> {{ issue.ownerId.substring(0, 8) }}...</span>
-                        <span><i class="pi pi-calendar mr-1"></i> {{ formatDate(issue.createdAt) }}</span>
+                        <span
+                            ><i class="pi pi-user mr-1"></i>
+                            {{ issue.ownerId.substring(0, 8) }}...</span
+                        >
+                        <span
+                            ><i class="pi pi-calendar mr-1"></i>
+                            {{ formatDate(issue.createdAt) }}</span
+                        >
                     </div>
                 </div>
 
-                <div class="flex items-start" v-if="issue.ownerId === props.user?.id">
+                <div
+                    class="flex items-start"
+                    v-if="issue.ownerId === props.user?.id"
+                >
                     <button
                         @click="deleteIssue(issue.id)"
                         class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition flex items-center gap-1"
@@ -72,14 +92,21 @@
             v-if="showCreateModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         >
-            <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-6">
-                <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+            <div
+                class="bg-white dark:bg-gray-800 rounded-lg max-w-5xl w-full h-[90vh] flex flex-col p-6"
+            >
+                <h3
+                    class="text-xl font-bold mb-4 text-gray-900 dark:text-white"
+                >
                     Create New Issue
                 </h3>
 
-                <div class="space-y-4">
+                <div class="space-y-4 flex-grow flex flex-col">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                            >Title</label
+                        >
                         <input
                             v-model="issueForm.title"
                             type="text"
@@ -88,18 +115,23 @@
                         />
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <div class="flex-grow flex flex-col">
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                            >Description</label
+                        >
                         <textarea
                             v-model="issueForm.body"
-                            rows="4"
-                            class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full flex-grow px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             placeholder="Detailed description..."
                         ></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                            >Status</label
+                        >
                         <select
                             v-model="issueForm.status"
                             class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -152,8 +184,8 @@ const issueForm = ref({
 });
 
 const filteredIssues = computed(() => {
-    return issues.value.filter(issue => {
-        if (issue.status !== 'Draft') return true;
+    return issues.value.filter((issue) => {
+        if (issue.status !== "Draft") return true;
         return issue.ownerId === props.user?.id;
     });
 });
@@ -169,7 +201,9 @@ const fetchIssues = async () => {
         const response = await fetch("/api/issues", { headers });
         if (response.ok) {
             const allIssues = await response.json();
-            issues.value = allIssues.filter((issue: any) => issue.repositoryId === props.repo.id);
+            issues.value = allIssues.filter(
+                (issue: any) => issue.repositoryId === props.repo.id,
+            );
         } else if (response.status === 404 || response.status === 401) {
             issues.value = [];
         } else {
