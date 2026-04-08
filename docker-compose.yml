@@ -120,17 +120,10 @@ services:
       - issue_data:/var/lib/postgresql/data
 
   # ----------MessageQueue----------
-  rabbitmq-setup:
-    image: alpine
-    command: sh -c "echo 'MYSECRETCOOKIE' > /var/lib/rabbitmq/.erlang.cookie && chown -R 100:101 /var/lib/rabbitmq && chmod 600 /var/lib/rabbitmq/.erlang.cookie"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-
   rabbitmq:
     image: rabbitmq:management-alpine
-    depends_on:
-      rabbitmq-setup:
-        condition: service_completed_successfully
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=MYSECRETCOOKIE
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
       interval: 5s
