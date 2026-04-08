@@ -4,6 +4,7 @@ using Issue.Data;
 using Issue.Services;
 using Issue.Interfaces;
 using Issue.APIs;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,22 @@ builder.Services.AddHttpClient();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<IssueDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IssueDbContext")));
+
+// MassTransit
+builder.Services.AddMassTransit(options =>
+    {
+        options.AddConsumer<SyncAuditorsEventConsumer>();
+
+        options.UsingRabbitMq((context, cfg) =>
+        {
+            cfg.Host(new Uri(builder.Configuration["MassTransit:Host"] ?? "rabbitmq://localhost:5672"), h =>
+            {
+                h.Username(builder.Configuration["MassTransit:Username"] ?? "guest");
+                h.Password(builder.Configuration["MassTransit:Password"] ?? "guest");
+            });
+        });
+    });
+
 builder.Services.AddHealthChecks();
 
 builder.Services.AddScoped<IIssueService, IssueService>();

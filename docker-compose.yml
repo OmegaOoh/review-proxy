@@ -65,13 +65,15 @@ services:
   issue:
     restart: always
     build:
-      context: ./src/services/issue
+      context: .
+      dockerfile: src/services/repository/Dockerfile
     entrypoint: ["dotnet", "issue.dll"]
     ports:
       - "5249:80"
     environment:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_ENVIRONMENT=compose
+      - MassTransit__Host=rabbitmq://rabbitmq:5672
     depends_on:
       - issue-db
 
@@ -121,6 +123,7 @@ services:
 
   # ----------MessageQueue----------
   rabbitmq:
+    restart: always
     image: rabbitmq:management-alpine
     environment:
       - RABBITMQ_ERLANG_COOKIE=MYSECRETCOOKIE
