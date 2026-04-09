@@ -8,5 +8,4 @@ public interface IRepositoryService
     Task UpdateRepositoryAsync(Guid repoId, string description);
     Task<bool> DeleteRepositoryAsync(Guid repoId, string ownerId);
     Task<List<RepositoryEntry>> GetRepositoriesAsync(Guid? ownerId = null, RepositoryRole? role = null);
-    Task PublishAuditorListAsync(Guid repoId);
 }

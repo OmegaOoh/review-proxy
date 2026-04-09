@@ -6,10 +6,8 @@ using ReviewProxy.Contracts;
 
 namespace Repository.Services;
 
-public class AuditorService(RepoDbContext dbContext, IPublishEndpoint publishEndpoint) : IAuditorService
+public class AuditorService(RepoDbContext dbContext, IRepositoryEventPublisher eventPublisher) : IAuditorService
 {
-    private readonly IPublishEndpoint _publishEndpoint = publishEndpoint;
-
     public async Task AddAuditorsAsync(Guid repoId, List<Guid> userId)
     {
         var repo = await dbContext.Repositories.FindAsync(repoId);
@@ -28,7 +26,7 @@ public class AuditorService(RepoDbContext dbContext, IPublishEndpoint publishEnd
         var saved = await dbContext.SaveChangesAsync();
         if (saved > 0)
         {
-            await PublishAuditorListAsync(repoId);
+            await eventPublisher.PublishAuditorListAsync(repoId);
         }
     }
 
@@ -63,25 +61,7 @@ public class AuditorService(RepoDbContext dbContext, IPublishEndpoint publishEnd
         var saved = await dbContext.SaveChangesAsync();
         if (saved > 0)
         {
-            await PublishAuditorListAsync(repoId);
+            await eventPublisher.PublishAuditorListAsync(repoId);
         }
-    }
-
-    public async Task PublishAuditorListAsync(Guid repoId)
-    {
-        var repo = await dbContext.Repositories.FindAsync(repoId);
-        if (repo == null) return;
-
-        var auditors = repo.AuditorsIds.Select(Guid.Parse).ToList();
-        if (Guid.TryParse(repo.OwnerId, out var ownerId) && !auditors.Contains(ownerId))
-        {
-            auditors.Add(ownerId);
-        }
-
-        await _publishEndpoint.Publish(new SyncAuditorListEvent
-        {
-            RepositoryId = repoId,
-            Auditors = auditors ?? []
-        });
     }
 }

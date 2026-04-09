@@ -1,4 +1,3 @@
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Repository.Data;
 using Repository.Interfaces;
@@ -6,7 +5,7 @@ using Repository.Models;
 
 namespace Repository.Services;
 
-public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory, IAuditorService auditorService) : IRepositoryService
+public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory, IRepositoryEventPublisher eventPublisher) : IRepositoryService
 {
     public async Task<bool> DeleteRepositoryAsync(Guid repoId, string ownerId)
     {
@@ -50,7 +49,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
 
         dbContext.Repositories.Add(entry);
         await dbContext.SaveChangesAsync();
-        await PublishAuditorListAsync(entry.Id);
+        await eventPublisher.PublishAuditorListAsync(entry.Id);
         return entry.Id;
     }
 
@@ -86,10 +85,5 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
             entry.Description = description;
             await dbContext.SaveChangesAsync();
         }
-    }
-
-    public async Task PublishAuditorListAsync(Guid repoId)
-    {
-        await auditorService.PublishAuditorListAsync(repoId);
     }
 }

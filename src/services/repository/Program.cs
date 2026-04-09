@@ -45,6 +45,7 @@ builder.Services.AddMassTransit(options =>
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddScoped<IRepositoryEventPublisher, RepositoryEventPublisher>();
 builder.Services.AddScoped<IRepositoryService, RepositoryService>();
 builder.Services.AddScoped<IAuditorService, AuditorService>();
 
