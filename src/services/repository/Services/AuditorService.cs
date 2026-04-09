@@ -67,7 +67,7 @@ public class AuditorService(RepoDbContext dbContext, IPublishEndpoint publishEnd
         }
     }
 
-    private async Task PublishAuditorListAsync(Guid repoId)
+    public async Task PublishAuditorListAsync(Guid repoId)
     {
         var repo = await dbContext.Repositories.FindAsync(repoId);
         if (repo == null) return;

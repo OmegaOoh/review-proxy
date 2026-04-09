@@ -6,7 +6,7 @@ using Repository.Models;
 
 namespace Repository.Services;
 
-public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory) : IRepositoryService
+public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory, IAuditorService auditorService) : IRepositoryService
 {
     public async Task<bool> DeleteRepositoryAsync(Guid repoId, string ownerId)
     {
@@ -47,8 +47,10 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
             CreatedAt = DateTime.UtcNow
         };
 
+
         dbContext.Repositories.Add(entry);
         await dbContext.SaveChangesAsync();
+        await PublishAuditorListAsync(entry.Id);
         return entry.Id;
     }
 
@@ -84,5 +86,10 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
             entry.Description = description;
             await dbContext.SaveChangesAsync();
         }
+    }
+
+    public async Task PublishAuditorListAsync(Guid repoId)
+    {
+        await auditorService.PublishAuditorListAsync(repoId);
     }
 }
