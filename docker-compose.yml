@@ -66,7 +66,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: src/services/repository/Dockerfile
+      dockerfile: src/services/issue/Dockerfile
     entrypoint: ["dotnet", "issue.dll"]
     ports:
       - "5249:80"
@@ -75,7 +75,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=compose
       - MassTransit__Host=rabbitmq://rabbitmq:5672
     depends_on:
-      - issue-db
+      issue-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   # frontend:
   #   restart: always
@@ -116,6 +119,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: issue_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d issue_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5434:5432"
     volumes:

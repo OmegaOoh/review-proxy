@@ -5,6 +5,7 @@ using Issue.Services;
 using Issue.Interfaces;
 using Issue.APIs;
 using MassTransit;
+using ReviewProxy.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,15 @@ builder.Services.AddMassTransit(options =>
                 h.Username(builder.Configuration["MassTransit:Username"] ?? "guest");
                 h.Password(builder.Configuration["MassTransit:Password"] ?? "guest");
             });
+
+            cfg.Message<SyncAuditorListEvent>(e => e.SetEntityName("auditor-sync-exchange"));
+
+            cfg.ReceiveEndpoint("issue-service-sync-auditors", e =>
+            {
+                e.ConfigureConsumer<SyncAuditorsEventConsumer>(context);
+            });
+
+            cfg.ConfigureEndpoints(context);
         });
     });
 
@@ -48,10 +58,17 @@ builder.Services.AddScoped<IIssueService, IssueService>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<IssueDbContext>();
-    db.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<IssueDbContext>();
+        db.Database.Migrate();
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Could not migrate database: {ex.Message}");
 }
 
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")

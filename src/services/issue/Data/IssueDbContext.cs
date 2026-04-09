@@ -11,6 +11,7 @@ public class IssueDbContext : DbContext
     }
 
     public DbSet<IssueEntry> Issues { get; set; }
+    public DbSet<RepositoryEntry> Repositories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,12 @@ public class IssueDbContext : DbContext
             entity.Property(e => e.Title).IsRequired();
             entity.Property(e => e.OwnerId).IsRequired();
             entity.Property(e => e.RepositoryId).IsRequired();
+        });
+
+        modelBuilder.Entity<RepositoryEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AuditorsId).IsRequired();
         });
     }
 }

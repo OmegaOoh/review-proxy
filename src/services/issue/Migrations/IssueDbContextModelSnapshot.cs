@@ -39,9 +39,8 @@ namespace issue.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("RepositoryId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -56,7 +55,41 @@ namespace issue.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RepositoryId");
+
                     b.ToTable("Issues");
+                });
+
+            modelBuilder.Entity("Issue.Models.RepositoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<Guid[]>("AuditorsId")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Repositories");
+                });
+
+            modelBuilder.Entity("Issue.Models.IssueEntry", b =>
+                {
+                    b.HasOne("Issue.Models.RepositoryEntry", "Repository")
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Repository");
                 });
 #pragma warning restore 612, 618
         }

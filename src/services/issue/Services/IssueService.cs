@@ -5,14 +5,9 @@ using Issue.Models;
 
 namespace Issue.Services;
 
-public class IssueService : IIssueService
+public class IssueService(IssueDbContext context) : IIssueService
 {
-    private readonly IssueDbContext _context;
-
-    public IssueService(IssueDbContext context)
-    {
-        _context = context;
-    }
+    private readonly IssueDbContext _context = context;
 
     public async Task<IEnumerable<IssueEntry>> GetAllIssuesAsync()
     {
@@ -21,6 +16,10 @@ public class IssueService : IIssueService
 
     public async Task<IssueEntry> CreateIssueAsync(IssueEntry issue)
     {
+        var repo = await _context.Repositories.FindAsync(issue.RepositoryId);
+        if (repo == null)
+            throw new ArgumentException("Repository not found.");
+
         issue.Id = Guid.NewGuid();
         issue.CreatedAt = DateTime.UtcNow;
         issue.UpdatedAt = DateTime.UtcNow;
@@ -37,8 +36,11 @@ public class IssueService : IIssueService
 
         if (issue == null) return false;
 
-        // Only allow the owner to delete the issue
-        if (issue.OwnerId != ownerId) return false;
+        var repo = await _context.Repositories.FindAsync(issue.RepositoryId);
+        bool isAuditorOrOwner = repo != null && Guid.TryParse(ownerId, out var userGuid) && repo.AuditorsId.Contains(userGuid);
+
+        // Allow the owner of the issue, or an auditor/repo owner to delete the issue
+        if (issue.OwnerId != ownerId && !isAuditorOrOwner) return false;
 
         _context.Issues.Remove(issue);
         await _context.SaveChangesAsync();

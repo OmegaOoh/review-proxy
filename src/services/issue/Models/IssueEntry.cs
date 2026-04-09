@@ -1,5 +1,5 @@
-using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Issue.Models;
 
@@ -19,7 +19,10 @@ public class IssueEntry
     public string OwnerId { get; set; } = string.Empty;
 
     [Required]
-    public string RepositoryId { get; set; } = string.Empty;
+    [ForeignKey("Repository")]
+    public Guid RepositoryId { get; set; }
+
+    public virtual RepositoryEntry? Repository { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
