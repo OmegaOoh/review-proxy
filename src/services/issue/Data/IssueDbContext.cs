@@ -23,6 +23,8 @@ public class IssueDbContext : DbContext
             entity.Property(e => e.Title).IsRequired();
             entity.Property(e => e.OwnerId).IsRequired();
             entity.Property(e => e.RepositoryId).IsRequired();
+            entity.Property(e => e.Status)
+                  .HasConversion<string>();
         });
 
         modelBuilder.Entity<RepositoryEntry>(entity =>

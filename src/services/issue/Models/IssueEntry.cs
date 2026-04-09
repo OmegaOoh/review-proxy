@@ -13,7 +13,7 @@ public class IssueEntry
 
     public string Body { get; set; } = string.Empty;
 
-    public string Status { get; set; } = "Draft";
+    public IssueStatus Status { get; set; } = IssueStatus.Draft;
 
     [Required]
     public string OwnerId { get; set; } = string.Empty;
