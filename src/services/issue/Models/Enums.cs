@@ -3,7 +3,7 @@ namespace Issue.Models;
 public enum IssueStatus
 {
     Draft,
-    WaitForReview,
+    SubmitForReview,
     Approved,
     Rejected,
 }

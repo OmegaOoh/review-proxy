@@ -74,9 +74,15 @@
                 </div>
 
                 <div
-                    class="flex items-start"
+                    class="flex items-start gap-2"
                     v-if="issue.ownerId === props.user?.id"
                 >
+                    <button
+                        @click="openEditModal(issue)"
+                        class="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition flex items-center gap-1"
+                    >
+                        <i class="pi pi-pencil"></i> Edit
+                    </button>
                     <button
                         @click="deleteIssue(issue.id)"
                         class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition flex items-center gap-1"
@@ -87,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Create Issue Modal -->
+        <!-- Create/Edit Issue Modal -->
         <div
             v-if="showCreateModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -98,7 +104,7 @@
                 <h3
                     class="text-xl font-bold mb-4 text-gray-900 dark:text-white"
                 >
-                    Create New Issue
+                    {{ editingIssue ? "Edit Issue" : "Create New Issue" }}
                 </h3>
 
                 <div class="space-y-4 flex-grow flex flex-col">
@@ -127,7 +133,7 @@
                         ></textarea>
                     </div>
 
-                    <div>
+                    <div v-if="!editingIssue">
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                             >Status</label
@@ -144,19 +150,27 @@
 
                 <div class="mt-6 flex justify-end gap-3">
                     <button
-                        @click="showCreateModal = false"
+                        @click="closeModal"
                         class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition"
-                        :disabled="creating"
+                        :disabled="saving"
                     >
                         Cancel
                     </button>
                     <button
-                        @click="createIssue"
+                        @click="saveIssue"
                         class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2"
-                        :disabled="creating"
+                        :disabled="saving"
                     >
-                        <i v-if="creating" class="pi pi-spin pi-spinner"></i>
-                        {{ creating ? "Creating..." : "Save Issue" }}
+                        <i v-if="saving" class="pi pi-spin pi-spinner"></i>
+                        {{
+                            saving
+                                ? editingIssue
+                                    ? "Updating..."
+                                    : "Creating..."
+                                : editingIssue
+                                  ? "Update Issue"
+                                  : "Save Issue"
+                        }}
                     </button>
                 </div>
             </div>
@@ -176,7 +190,8 @@ const issues = ref<any[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const showCreateModal = ref(false);
-const creating = ref(false);
+const saving = ref(false);
+const editingIssue = ref<any>(null);
 const issueForm = ref({
     title: "",
     body: "",
@@ -217,13 +232,41 @@ const fetchIssues = async () => {
     }
 };
 
+const openEditModal = (issue: any) => {
+    editingIssue.value = issue;
+    issueForm.value = {
+        title: issue.title,
+        body: issue.body,
+        status: issue.status,
+    };
+    showCreateModal.value = true;
+};
+
+const closeModal = () => {
+    showCreateModal.value = false;
+    editingIssue.value = null;
+    issueForm.value = {
+        title: "",
+        body: "",
+        status: "Draft",
+    };
+};
+
+const saveIssue = async () => {
+    if (editingIssue.value) {
+        await updateIssue();
+    } else {
+        await createIssue();
+    }
+};
+
 const createIssue = async () => {
     if (!issueForm.value.title) {
         alert("Title is required");
         return;
     }
 
-    creating.value = true;
+    saving.value = true;
     try {
         const token = localStorage.getItem("token");
         const headers: HeadersInit = {
@@ -246,12 +289,7 @@ const createIssue = async () => {
         if (response.ok) {
             const newIssue = await response.json();
             issues.value.push(newIssue);
-            showCreateModal.value = false;
-            issueForm.value = {
-                title: "",
-                body: "",
-                status: "Draft",
-            };
+            closeModal();
         } else {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.message || "Failed to create issue");
@@ -260,7 +298,52 @@ const createIssue = async () => {
         console.error(err);
         alert(err.message || "An error occurred while creating the issue.");
     } finally {
-        creating.value = false;
+        saving.value = false;
+    }
+};
+
+const updateIssue = async () => {
+    if (!issueForm.value.title) {
+        alert("Title is required");
+        return;
+    }
+
+    saving.value = true;
+    try {
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(`/api/issues/${editingIssue.value.id}`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+                title: issueForm.value.title,
+                body: issueForm.value.body,
+            }),
+        });
+
+        if (response.ok) {
+            const updatedIssue = await response.json();
+            const index = issues.value.findIndex(
+                (i) => i.id === updatedIssue.id,
+            );
+            if (index !== -1) {
+                issues.value[index] = updatedIssue;
+            }
+            closeModal();
+        } else {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || "Failed to update issue");
+        }
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "An error occurred while updating the issue.");
+    } finally {
+        saving.value = false;
     }
 };
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Issue.Interfaces;
 using Issue.Models;
+using Issue.Models.Dtos;
 
 namespace Issue.APIs;
 
@@ -61,6 +62,29 @@ public static class IssueEndpoints
         })
         .WithName("DeleteIssue")
         ;
+
+        group.MapPut("/{id:guid}", async (Guid id, IssuePatchRequest issuePatch, IIssueService issueService, HttpContext context) =>
+        {
+            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? context.User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var updatedIssue = await issueService.EditIssueAsync(id, userId, issuePatch);
+
+            if (updatedIssue == null)
+            {
+                return Results.NotFound(new { Message = "Issue not found or you do not have permission to edit it." });
+            }
+
+            return Results.Ok(updatedIssue);
+        })
+        .WithName("EditIssue")
+        ;
+        
 
         return app;
     }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Issue.Data;
 using Issue.Interfaces;
 using Issue.Models;
+using Issue.Models.Dtos;
 
 namespace Issue.Services;
 
@@ -46,5 +47,38 @@ public class IssueService(IssueDbContext context) : IIssueService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<IssueEntry?> EditIssueAsync(Guid id, string userId, IssuePatchRequest issuePatch)
+    {
+        var existingIssue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id && i.OwnerId == userId);
+
+
+        if (existingIssue == null) return null;
+
+        // Disallow editing of approved issues
+        if (existingIssue.Status == IssueStatus.Approved) return null;
+
+        IssueStatus[] whiteListStatus = [IssueStatus.Draft, IssueStatus.SubmitForReview];
+
+        if (issuePatch.Title != null) existingIssue.Title = issuePatch.Title;
+        if (issuePatch.Body != null) existingIssue.Body = issuePatch.Body;
+
+        if (issuePatch.Status.HasValue && whiteListStatus.Contains(issuePatch.Status.Value))
+        {
+            existingIssue.Status = issuePatch.Status.Value;
+        }
+
+        // Set status to draft if rejected and edited (while not explicitly stated in this patch)
+        if (existingIssue.Status == IssueStatus.Rejected && !issuePatch.Status.HasValue)
+        {
+            existingIssue.Status = IssueStatus.Draft;
+        }
+
+        existingIssue.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return existingIssue;
     }
 }
