@@ -25,6 +25,10 @@ builder.Services.AddAuthentication("Bearer")
 builder.Services.AddAuthorization();
 builder.Services.AddHttpClient();
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 builder.Services.AddDbContext<IssueDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IssueDbContext")));
 

@@ -46,14 +46,18 @@
                                 'bg-gray-200 text-gray-800':
                                     issue.status === 'Draft',
                                 'bg-blue-100 text-blue-800':
-                                    issue.status === 'Submitted',
+                                    issue.status === 'SubmitForReview',
                                 'bg-green-100 text-green-800':
                                     issue.status === 'Approved',
                                 'bg-red-100 text-red-800':
                                     issue.status === 'Rejected',
                             }"
                         >
-                            {{ issue.status }}
+                            {{
+                                issue.status === "SubmitForReview"
+                                    ? "Submit for Review"
+                                    : issue.status
+                            }}
                         </span>
                     </div>
                     <p
@@ -73,22 +77,42 @@
                     </div>
                 </div>
 
-                <div
-                    class="flex items-start gap-2"
-                    v-if="issue.ownerId === props.user?.id"
-                >
-                    <button
-                        @click="openEditModal(issue)"
-                        class="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition flex items-center gap-1"
+                <div class="flex items-start gap-2">
+                    <template v-if="issue.ownerId === props.user?.id">
+                        <button
+                            v-if="issue.status !== 'Approved'"
+                            @click="openEditModal(issue)"
+                            class="px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition flex items-center gap-1"
+                        >
+                            <i class="pi pi-pencil"></i> Edit
+                        </button>
+                        <button
+                            @click="deleteIssue(issue.id)"
+                            class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition flex items-center gap-1"
+                        >
+                            <i class="pi pi-trash"></i> Delete
+                        </button>
+                    </template>
+                    <template
+                        v-if="
+                            isAuditor &&
+                            issue.status === 'SubmitForReview' &&
+                            issue.ownerId !== props.user?.id
+                        "
                     >
-                        <i class="pi pi-pencil"></i> Edit
-                    </button>
-                    <button
-                        @click="deleteIssue(issue.id)"
-                        class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition flex items-center gap-1"
-                    >
-                        <i class="pi pi-trash"></i> Delete
-                    </button>
+                        <button
+                            @click="approveIssue(issue.id)"
+                            class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition flex items-center gap-1"
+                        >
+                            <i class="pi pi-check"></i> Approve
+                        </button>
+                        <button
+                            @click="rejectIssue(issue.id)"
+                            class="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition flex items-center gap-1"
+                        >
+                            <i class="pi pi-times"></i> Reject
+                        </button>
+                    </template>
                 </div>
             </div>
         </div>
@@ -133,7 +157,7 @@
                         ></textarea>
                     </div>
 
-                    <div v-if="!editingIssue">
+                    <div>
                         <label
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                             >Status</label
@@ -143,7 +167,9 @@
                             class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="Draft">Draft</option>
-                            <option value="Submitted">Submit for Review</option>
+                            <option value="SubmitForReview">
+                                Submit for Review
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -198,6 +224,15 @@ const issueForm = ref({
     status: "Draft",
 });
 
+const isAuditor = computed(() => {
+    if (!props.repo || !props.user) return false;
+    const auditorIds = props.repo.auditors || props.repo.auditorsIds || [];
+    return (
+        auditorIds.includes(props.user.id) ||
+        props.repo.ownerId === props.user.id
+    );
+});
+
 const filteredIssues = computed(() => {
     return issues.value.filter((issue) => {
         if (issue.status !== "Draft") return true;
@@ -237,7 +272,7 @@ const openEditModal = (issue: any) => {
     issueForm.value = {
         title: issue.title,
         body: issue.body,
-        status: issue.status,
+        status: issue.status === "Rejected" ? "Draft" : issue.status,
     };
     showCreateModal.value = true;
 };
@@ -323,6 +358,7 @@ const updateIssue = async () => {
             body: JSON.stringify({
                 title: issueForm.value.title,
                 body: issueForm.value.body,
+                status: issueForm.value.status,
             }),
         });
 
@@ -344,6 +380,58 @@ const updateIssue = async () => {
         alert(err.message || "An error occurred while updating the issue.");
     } finally {
         saving.value = false;
+    }
+};
+
+const approveIssue = async (id: string) => {
+    try {
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = { Accept: "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(`/api/issues/${id}/approve`, {
+            method: "POST",
+            headers,
+        });
+
+        if (response.ok) {
+            const index = issues.value.findIndex((i) => i.id === id);
+            if (index !== -1) {
+                issues.value[index].status = "Approved";
+            }
+        } else {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || "Failed to approve issue");
+        }
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "An error occurred while approving the issue.");
+    }
+};
+
+const rejectIssue = async (id: string) => {
+    try {
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = { Accept: "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(`/api/issues/${id}/reject`, {
+            method: "POST",
+            headers,
+        });
+
+        if (response.ok) {
+            const index = issues.value.findIndex((i) => i.id === id);
+            if (index !== -1) {
+                issues.value[index].status = "Rejected";
+            }
+        } else {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || "Failed to reject issue");
+        }
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "An error occurred while rejecting the issue.");
     }
 };
 
