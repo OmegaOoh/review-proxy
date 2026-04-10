@@ -61,7 +61,9 @@
                         </span>
                     </div>
                     <p
-                        class="text-sm text-gray-600 dark:text-gray-300 mb-2 whitespace-pre-line"
+                        @click="openViewModal(issue)"
+                        class="text-sm text-gray-600 dark:text-gray-300 mb-2 whitespace-pre-line line-clamp-3 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
+                        title="Click to view full description"
                     >
                         {{ issue.body || "No description provided." }}
                     </p>
@@ -87,6 +89,7 @@
                             <i class="pi pi-pencil"></i> Edit
                         </button>
                         <button
+                            v-if="issue.status !== 'Approved'"
                             @click="deleteIssue(issue.id)"
                             class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition flex items-center gap-1"
                         >
@@ -113,6 +116,78 @@
                             <i class="pi pi-times"></i> Reject
                         </button>
                     </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Issue Modal -->
+        <div
+            v-if="showViewModal && viewingIssue"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        >
+            <div
+                class="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full h-[80vh] flex flex-col p-6 shadow-2xl"
+            >
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3
+                            class="text-2xl font-bold text-gray-900 dark:text-white"
+                        >
+                            {{ viewingIssue.title }}
+                        </h3>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span
+                                class="px-2 py-0.5 text-xs font-semibold rounded-full"
+                                :class="{
+                                    'bg-gray-200 text-gray-800':
+                                        viewingIssue.status === 'Draft',
+                                    'bg-blue-100 text-blue-800':
+                                        viewingIssue.status ===
+                                        'SubmitForReview',
+                                    'bg-green-100 text-green-800':
+                                        viewingIssue.status === 'Approved',
+                                    'bg-red-100 text-red-800':
+                                        viewingIssue.status === 'Rejected',
+                                }"
+                            >
+                                {{
+                                    viewingIssue.status === "SubmitForReview"
+                                        ? "Submit for Review"
+                                        : viewingIssue.status
+                                }}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                Created by
+                                {{ viewingIssue.ownerId.substring(0, 8) }}... on
+                                {{ formatDate(viewingIssue.createdAt) }}
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        @click="closeModal"
+                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                        <i class="pi pi-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div
+                    class="flex-grow overflow-y-auto mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600"
+                >
+                    <p
+                        class="text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed"
+                    >
+                        {{ viewingIssue.body || "No description provided." }}
+                    </p>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button
+                        @click="closeModal"
+                        class="px-6 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    >
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -216,8 +291,11 @@ const issues = ref<any[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const showCreateModal = ref(false);
+const showViewModal = ref(false);
 const saving = ref(false);
 const editingIssue = ref<any>(null);
+const viewingIssue = ref<any>(null);
+
 const issueForm = ref({
     title: "",
     body: "",
@@ -277,9 +355,16 @@ const openEditModal = (issue: any) => {
     showCreateModal.value = true;
 };
 
+const openViewModal = (issue: any) => {
+    viewingIssue.value = issue;
+    showViewModal.value = true;
+};
+
 const closeModal = () => {
     showCreateModal.value = false;
+    showViewModal.value = false;
     editingIssue.value = null;
+    viewingIssue.value = null;
     issueForm.value = {
         title: "",
         body: "",
