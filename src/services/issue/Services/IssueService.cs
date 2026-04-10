@@ -49,15 +49,15 @@ public class IssueService(IssueDbContext context) : IIssueService
         return true;
     }
 
-    public async Task<IssueEntry?> EditIssueAsync(Guid id, string userId, IssuePatchRequest issuePatch)
+    public async Task<IssueEntry> EditIssueAsync(Guid id, string userId, IssuePatchRequest issuePatch)
     {
         var existingIssue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id && i.OwnerId == userId);
 
 
-        if (existingIssue == null) return null;
+        if (existingIssue == null) throw new KeyNotFoundException("Issue not found or you do not have permission to edit it.");
 
         // Disallow editing of approved issues
-        if (existingIssue.Status == IssueStatus.Approved) return null;
+        if (existingIssue.Status == IssueStatus.Approved) throw new InvalidOperationException("Cannot edit an approved issue.");
 
         IssueStatus[] whiteListStatus = [IssueStatus.Draft, IssueStatus.SubmitForReview];
 

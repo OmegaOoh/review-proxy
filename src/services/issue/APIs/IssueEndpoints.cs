@@ -72,8 +72,29 @@ public static class IssueEndpoints
             {
                 return Results.Unauthorized();
             }
+            try
+            {
+                var updatedIssue = await issueService.EditIssueAsync(id, userId, issuePatch);
+                return Results.Ok(updatedIssue);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                // Fallback for unexpected server errors
+                return Results.StatusCode(500);
+            }
 
-            var updatedIssue = await issueService.EditIssueAsync(id, userId, issuePatch);
+
+        })
+        .WithName("EditIssue")
+        ;
 
             if (updatedIssue == null)
             {
