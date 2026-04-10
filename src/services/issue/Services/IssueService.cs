@@ -81,4 +81,44 @@ public class IssueService(IssueDbContext context) : IIssueService
 
         return existingIssue;
     }
+
+    public async Task<bool> ApproveIssueAsync(Guid id, string userId)
+    {
+        var existingIssue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id) ?? throw new KeyNotFoundException($"Issue with id {id} not found");
+        if (existingIssue.Status != IssueStatus.SubmitForReview) throw new InvalidOperationException($"Issue with id {id} is not submitted for review");
+        if (existingIssue.OwnerId == userId) throw new InvalidOperationException($"Issue with id {id} cannot be approved by the owner");
+
+        var repo = await _context.Repositories.FindAsync(existingIssue.RepositoryId) ?? throw new KeyNotFoundException($"Cannot find repository with id {existingIssue.RepositoryId}");
+
+        // Findout if the user is an auditor of the repository
+        if (!Guid.TryParse(userId, out var userGuid) || !repo.AuditorsId.Contains(userGuid)) throw new UnauthorizedAccessException($"User {userId} is not an auditor of repository {existingIssue.RepositoryId}");
+
+
+        existingIssue.Status = IssueStatus.Approved;
+        existingIssue.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> RejectIssueAsync(Guid id, string userId)
+    {
+        var existingIssue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id) ?? throw new KeyNotFoundException($"Issue with id {id} not found");
+        if (existingIssue.Status != IssueStatus.SubmitForReview) throw new InvalidOperationException($"Issue with id {id} is not submitted for review");
+        if (existingIssue.OwnerId == userId) throw new InvalidOperationException($"Issue with id {id} cannot be approved by the owner");
+
+        var repo = await _context.Repositories.FindAsync(existingIssue.RepositoryId) ?? throw new KeyNotFoundException($"Cannot find repository with id {existingIssue.RepositoryId}");
+
+        // Findout if the user is an auditor of the repository
+        if (!Guid.TryParse(userId, out var userGuid) || !repo.AuditorsId.Contains(userGuid)) throw new UnauthorizedAccessException($"User {userId} is not an auditor of repository {existingIssue.RepositoryId}");
+
+
+        existingIssue.Status = IssueStatus.Rejected;
+        existingIssue.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

@@ -96,16 +96,74 @@ public static class IssueEndpoints
         .WithName("EditIssue")
         ;
 
-            if (updatedIssue == null)
+        group.MapPost("/{id:guid}/approve", async (Guid id, IIssueService issueService, HttpContext context) =>
             {
-                return Results.NotFound(new { Message = "Issue not found or you do not have permission to edit it." });
-            }
+                var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                             ?? context.User.FindFirst("sub")?.Value;
 
-            return Results.Ok(updatedIssue);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Results.Unauthorized();
+                }
+
+                try
+                {
+                    await issueService.ApproveIssueAsync(id, userId);
+                    return Results.Ok();
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    return Results.NotFound(new { message = ex.Message });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return Results.Forbid();
+                }
+                catch (Exception)
+                {
+                    return Results.StatusCode(500);
+                }
+            })
+            .WithName("ApproveIssue")
+            ;
+
+        group.MapPost("/{id:guid}/reject", async (Guid id, IIssueService issueService, HttpContext context) =>
+        {
+            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? context.User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Results.Unauthorized();
+            }
+            try
+            {
+                await issueService.RejectIssueAsync(id, userId);
+                return Results.Ok();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Results.Forbid();
+            }
+            catch (Exception)
+            {
+                return Results.StatusCode(500);
+            }
         })
-        .WithName("EditIssue")
+        .WithName("RejectIssue")
         ;
-        
 
         return app;
     }
