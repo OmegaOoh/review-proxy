@@ -50,6 +50,7 @@ builder.Services.AddAuthentication(options =>
     options.ClientSecret = builder.Configuration["GitHub:ClientSecret"]!;
     options.Scope.Add("read:user");
     options.CallbackPath = "/api/sync/signin-github";
+    options.SaveTokens = true;
 });
 
 builder.Services.AddAuthorization();

@@ -349,13 +349,9 @@ const fetchGithubRepos = async () => {
     if (githubRepositories.value.length > 0) return;
     loadingGithubRepos.value = true;
     try {
-        // Direct call to GitHub API for the user's repos
-        const response = await fetch(
-            `https://api.github.com/users/${props.user.gitHubUsername}/repos`,
+        githubRepositories.value = await api.get<any[]>(
+            "/api/sync/repositories",
         );
-        if (response.ok) {
-            githubRepositories.value = await response.json();
-        }
     } catch (err) {
         console.error("Failed to fetch GitHub repos", err);
     } finally {

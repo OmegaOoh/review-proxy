@@ -52,5 +52,28 @@ public static class SyncingEndpoints
             return Results.Content(json, "application/json");
 
         }).RequireAuthorization();
+
+        // Fetches all GitHub repositories the user has granted access to via the GitHub App.
+        // Uses the user's saved access token to find installations and then list repos.
+        group.MapGet("/repositories", async (HttpContext httpContext, ISyncingService syncingService) =>
+        {
+            var accessToken = await httpContext.GetAsyncToken("access_token");
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                return Results.Unauthorized();
+            }
+
+            var repos = await syncingService.GetUserRepositoriesAsync(accessToken);
+            return Results.Ok(repos);
+
+        }).RequireAuthorization();
+    }
+}
+
+public static class AuthExtensions
+{
+    public static async Task<string?> GetAsyncToken(this HttpContext context, string tokenName)
+    {
+        return await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.GetTokenAsync(context, tokenName);
     }
 }
