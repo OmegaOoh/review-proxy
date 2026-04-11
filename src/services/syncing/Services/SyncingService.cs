@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Syncing.Services;
 
-public class SyncingService(IHttpClientFactory httpClientFactory, IConfiguration configuration) : ISyncingService
+public class SyncingService(IHttpClientFactory httpClientFactory) : ISyncingService
 {
     public async Task<string> ExchangeGitHubUserAsync(string githubId, string username, string? avatarUrl)
     {
@@ -88,38 +88,5 @@ public class SyncingService(IHttpClientFactory httpClientFactory, IConfiguration
             html_url = r.HtmlUrl,
             @private = r.Private
         });
-    }
-    private async Task<string> GetInstallationTokenAsync(long installationId)
-    {
-        var appId = configuration["GitHub:AppId"];
-        var privateKey = configuration["GitHub:PrivateKey"];
-
-        if (string.IsNullOrEmpty(appId) || string.IsNullOrEmpty(privateKey))
-        {
-            throw new InvalidOperationException("GitHub AppId or PrivateKey is not configured.");
-        }
-
-        // The PrivateKey might contain literal \n if it was loaded from env vars or some configs.
-        // We ensure it has actual newlines.
-        var formattedPrivateKey = privateKey.Replace("\\n", "\n");
-
-        var generator = new GitHubJwtFactory(
-            new StringPrivateKeySource(formattedPrivateKey),
-            new GitHubJwtFactoryOptions
-            {
-                AppIntegrationId = int.Parse(appId),
-                ExpirationSeconds = 600 // 10 minutes
-            }
-        );
-
-        var jwt = generator.CreateEncodedJwtToken();
-
-        var appClient = new GitHubClient(new ProductHeaderValue("ReviewProxy-App"))
-        {
-            Credentials = new Credentials(jwt, AuthenticationType.Bearer)
-        };
-
-        var response = await appClient.GitHubApps.CreateInstallationToken(installationId);
-        return response.Token;
     }
 }

@@ -29,12 +29,9 @@ public static class RepositoryEndpoints
             var ownerIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(ownerIdClaim)) return Results.Unauthorized();
 
-            var usernameClaim = user.FindFirst(ClaimTypes.Name)?.Value;
-            if (string.IsNullOrEmpty(usernameClaim)) return Results.Unauthorized();
-
             try
             {
-                var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, usernameClaim, depot.Description, depot.Auditors);
+                var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description, depot.Auditors);
                 return Results.Created($"/api/repositories/{id}", id);
             }
             catch (ArgumentException ex)

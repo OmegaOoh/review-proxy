@@ -20,12 +20,11 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
         return true;
     }
 
-    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string ownerUsername, string description, List<Guid> auditors)
+    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, List<Guid> auditors)
     {
-        if (string.IsNullOrWhiteSpace(githubRepoId) ||
-            !githubRepoId.StartsWith(ownerUsername + "/", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(githubRepoId))
         {
-            throw new ArgumentException("Repository must be owned by the authenticated user.");
+            throw new ArgumentException("GitHub Repository ID is required.");
         }
 
         var client = httpClientFactory.CreateClient();
