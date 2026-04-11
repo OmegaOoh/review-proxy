@@ -98,8 +98,19 @@
                         <div
                             class="flex items-center gap-2 px-3 border-r border-gray-100 dark:border-gray-700"
                         >
-                            <i class="pi pi-user text-blue-500"></i>
-                            <span>{{ repo.ownerId.substring(0, 8) }}</span>
+                            <img
+                                v-if="repo.owner"
+                                :src="
+                                    repo.owner.gitHubAvatarUrl ||
+                                    `https://github.com/${repo.owner.gitHubUsername}.png`
+                                "
+                                class="w-5 h-5 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm"
+                            />
+                            <i v-else class="pi pi-user text-blue-500"></i>
+                            <span>{{
+                                repo.owner?.gitHubUsername ||
+                                repo.ownerId.substring(0, 8)
+                            }}</span>
                         </div>
                         <div class="flex items-center gap-2 px-3">
                             <i class="pi pi-calendar text-green-500"></i>

@@ -34,6 +34,8 @@ export interface Issue {
   repositoryId: string;
   createdAt: string;
   updatedAt: string;
+  // Client-side extension
+  owner?: User;
 }
 
 export interface DepositRequest {

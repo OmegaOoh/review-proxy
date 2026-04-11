@@ -56,7 +56,10 @@
                 :key="issue.id"
                 class="group p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between gap-6"
             >
-                <div class="flex-grow">
+                <div
+                    class="flex-grow cursor-pointer"
+                    @click="openViewModal(issue)"
+                >
                     <div class="flex items-center gap-3 mb-3">
                         <span
                             class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-lg shadow-sm"
@@ -65,14 +68,13 @@
                             {{ formatStatus(issue.status) }}
                         </span>
                         <h3
-                            class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors"
+                            class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-400 transition-colors"
                         >
                             {{ issue.title }}
                         </h3>
                     </div>
                     <p
-                        @click="openViewModal(issue)"
-                        class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-200 transition-colors text-sm"
+                        class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 transition-colors text-sm"
                     >
                         {{ issue.body || "No description provided." }}
                     </p>
@@ -80,8 +82,19 @@
                         class="flex items-center gap-6 text-[11px] font-bold text-gray-400 uppercase tracking-widest"
                     >
                         <div class="flex items-center gap-1.5">
-                            <i class="pi pi-user text-[10px]"></i>
-                            <span>{{ issue.ownerId.substring(0, 8) }}</span>
+                            <img
+                                v-if="issue.owner"
+                                :src="
+                                    issue.owner.gitHubAvatarUrl ||
+                                    `https://github.com/${issue.owner.gitHubUsername}.png`
+                                "
+                                class="w-4 h-4 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm"
+                            />
+                            <i v-else class="pi pi-user text-[10px]"></i>
+                            <span>{{
+                                issue.owner?.gitHubUsername ||
+                                issue.ownerId.substring(0, 8)
+                            }}</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <i class="pi pi-calendar text-[10px]"></i>
@@ -154,7 +167,10 @@
                                 </span>
                                 <span class="text-sm text-gray-500"
                                     >Created by
-                                    {{ viewingIssue.ownerId.substring(0, 8) }}
+                                    {{
+                                        viewingIssue.owner?.gitHubUsername ||
+                                        viewingIssue.ownerId.substring(0, 8)
+                                    }}
                                     on
                                     {{
                                         formatDate(viewingIssue.createdAt)
