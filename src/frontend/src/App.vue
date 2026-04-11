@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useAuth } from "./composables/useAuth";
+import { storeToRefs } from "pinia";
+import { useAuthStore } from "./stores/auth";
 import UserProfile from "./components/UserProfile.vue";
 import Login from "./components/Login.vue";
 
-const { user, isAuthenticated, loading, fetchUser, signOut } = useAuth();
+const authStore = useAuthStore();
+const { user, isAuthenticated, loading } = storeToRefs(authStore);
 
-// reactive flag reflecting whether dark mode is active (reads from document root)
+// Dark mode state
 const dark = ref(
     typeof document !== "undefined" &&
         document.documentElement.classList.contains("dark"),
@@ -16,36 +18,47 @@ const toggleDark = () => {
     dark.value = !dark.value;
     if (dark.value) {
         document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
     } else {
         document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
     }
 };
 
 onMounted(() => {
-    fetchUser();
+    authStore.fetchUser();
 });
 </script>
 
 <template>
     <div
-        class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+        class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200"
     >
         <!-- Topbar -->
-        <header class="bg-white dark:bg-gray-800 shadow-sm">
+        <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40">
             <div
                 class="container mx-auto px-4 py-3 flex items-center justify-between"
             >
-                <div class="flex items-center space-x-3">
-                    <div class="text-2xl font-semibold">Review Proxy</div>
-                    <span class="text-sm text-gray-500 dark:text-gray-400"
-                        >Manage repo reviews effortlessly</span
+                <router-link to="/" class="flex items-center space-x-3 group">
+                    <div
+                        class="text-2xl font-bold bg-blue-600 text-white px-2 py-1 rounded shadow-sm group-hover:bg-blue-700 transition-colors"
                     >
-                </div>
+                        RP
+                    </div>
+                    <div class="hidden sm:block">
+                        <div class="text-xl font-semibold leading-tight">
+                            Review Proxy
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            Streamlined Repo Reviews
+                        </div>
+                    </div>
+                </router-link>
 
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-4">
                     <button
                         @click="toggleDark"
-                        class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         :aria-pressed="dark"
                         :title="dark ? 'Switch to light' : 'Switch to dark'"
                     >
@@ -54,11 +67,11 @@ onMounted(() => {
                     </button>
 
                     <template v-if="isAuthenticated && user">
-                        <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-4">
                             <UserProfile />
                             <button
-                                @click="signOut"
-                                class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded flex items-center"
+                                @click="authStore.signOut"
+                                class="px-3 py-1.5 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center text-sm font-medium transition-colors"
                             >
                                 <i class="pi pi-sign-out mr-2"></i>
                                 <span>Sign out</span>
@@ -71,9 +84,14 @@ onMounted(() => {
 
         <!-- Main content -->
         <main class="container mx-auto px-4 py-8">
-            <div v-if="loading" class="mt-6 flex items-center">
-                <i class="pi pi-spin pi-spinner text-2xl text-blue-600"></i>
-                <span class="ml-3">Loading user data...</span>
+            <div
+                v-if="loading && !user"
+                class="mt-20 flex flex-col items-center justify-center"
+            >
+                <i
+                    class="pi pi-spin pi-spinner text-4xl text-blue-600 mb-4"
+                ></i>
+                <span class="text-gray-500">Initializing session...</span>
             </div>
 
             <div v-else>
@@ -82,7 +100,7 @@ onMounted(() => {
                 </template>
 
                 <template v-else>
-                    <div class="max-w-lg mx-auto">
+                    <div class="max-w-lg mx-auto mt-12">
                         <Login />
                     </div>
                 </template>
