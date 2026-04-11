@@ -31,7 +31,7 @@ public static class RepositoryEndpoints
 
             try
             {
-                var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description, depot.Auditors);
+                var id = await service.DepositAsync(depot.GithubRepoId, ownerIdClaim, depot.Description, depot.GitHubToken, depot.Auditors);
                 return Results.Created($"/api/repositories/{id}", id);
             }
             catch (ArgumentException ex)

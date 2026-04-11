@@ -402,9 +402,11 @@ const removeAuditor = (id: string) => {
 const handleDeposit = async () => {
     depositing.value = true;
     try {
+        const githubToken = localStorage.getItem("github_token");
         await repoStore.depositRepository({
             githubRepoId: depositForm.value.githubRepoId,
             description: depositForm.value.description,
+            gitHubToken: githubToken || undefined,
             auditors: selectedAuditors.value.map((a) => a.id),
         });
         showDepositModal.value = false;

@@ -20,7 +20,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
         return true;
     }
 
-    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, List<Guid> auditors)
+    public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, string githubToken, List<Guid> auditors)
     {
         if (string.IsNullOrWhiteSpace(githubRepoId))
         {
@@ -29,10 +29,33 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
 
         var client = httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+
+        if (!string.IsNullOrWhiteSpace(githubToken))
+        {
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
+        }
+
         var response = await client.GetAsync($"https://api.github.com/repos/{githubRepoId}");
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException("Invalid or inaccessible GitHub repository.");
+        }
+
+        var json = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        if (json.TryGetProperty("permissions", out var permissions))
+        {
+            var admin = permissions.TryGetProperty("admin", out var a) && a.GetBoolean();
+            var push = permissions.TryGetProperty("push", out var p) && p.GetBoolean();
+
+            if (!admin && !push)
+            {
+                throw new ArgumentException("You must have admin or push access to the repository on GitHub.");
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(githubToken))
+        {
+            // If authenticated but permissions not returned, GitHub likely doesn't see us as having access
+            throw new ArgumentException("Unable to verify repository permissions with GitHub.");
         }
 
         var entry = new RepositoryEntry

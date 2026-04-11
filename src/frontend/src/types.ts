@@ -41,6 +41,7 @@ export interface Issue {
 export interface DepositRequest {
   githubRepoId: string;
   description: string;
+  gitHubToken?: string;
   auditors: string[];
 }
 
