@@ -21,6 +21,13 @@ public class IdentityService(
         return await context.Set<UserEntry>().FindAsync(id);
     }
 
+    public async Task<List<UserEntry>> GetUsersByIdsAsync(List<Guid> ids)
+    {
+        return await context.Set<UserEntry>()
+            .Where(u => ids.Contains(u.Id))
+            .ToListAsync();
+    }
+
     public async Task<UserEntry?> GetUserByGitHubIdAsync(string githubId)
     {
         return await context.Set<UserEntry>().FirstOrDefaultAsync(u => u.GitHubID == githubId);

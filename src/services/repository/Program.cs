@@ -23,7 +23,13 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 builder.Services.AddAuthorization();
-builder.Services.AddHttpClient();
+
+// Named HTTP client for service-to-service calls to IdentityService.
+builder.Services.AddHttpClient("identity", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:Identity"] ?? "http://identity");
+});
+
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<RepoDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("RepoDbContext")));

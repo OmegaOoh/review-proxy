@@ -3,10 +3,14 @@ using Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MassTransit;
 using ReviewProxy.Contracts;
+using System.Net.Http.Json;
 
 namespace Repository.Services;
 
-public class AuditorService(RepoDbContext dbContext, IRepositoryEventPublisher eventPublisher) : IAuditorService
+public class AuditorService(
+    RepoDbContext dbContext,
+    IRepositoryEventPublisher eventPublisher,
+    IHttpClientFactory httpClientFactory) : IAuditorService
 {
     public async Task AddAuditorsAsync(Guid repoId, List<Guid> userId)
     {
@@ -42,6 +46,34 @@ public class AuditorService(RepoDbContext dbContext, IRepositoryEventPublisher e
         }
 
         return auditors;
+    }
+
+    public async Task<List<object>> GetAuditorsDetailsAsync(Guid repoId, string? authorizationHeader)
+    {
+        var ids = await GetAuditorsAsync(repoId);
+        if (ids.Count == 0) return [];
+
+        var client = httpClientFactory.CreateClient("identity");
+        if (!string.IsNullOrEmpty(authorizationHeader))
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationHeader);
+        }
+
+        try
+        {
+            var response = await client.PostAsJsonAsync("/api/identities/batch", ids);
+            if (response.IsSuccessStatusCode)
+            {
+                var details = await response.Content.ReadFromJsonAsync<List<object>>();
+                return details ?? [];
+            }
+        }
+        catch
+        {
+            // Fallback to empty if batch fails
+        }
+
+        return [];
     }
 
     public async Task RemoveAuditorsAsync(Guid repoId, List<Guid> userId)

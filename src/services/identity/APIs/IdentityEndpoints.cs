@@ -73,6 +73,12 @@ public static class IdentityEndpoints
             return Results.Ok(dbUser);
         }).RequireAuthorization();
 
+        group.MapPost("/batch", async ([FromBody] List<Guid> ids, IIdentityService identityService) =>
+        {
+            var users = await identityService.GetUsersByIdsAsync(ids);
+            return Results.Ok(users);
+        }).RequireAuthorization();
+
         group.MapGet("/", async ([FromQuery] string? query, IIdentityService identityService) =>
         {
             var users = await identityService.GetUsersAsync(query);

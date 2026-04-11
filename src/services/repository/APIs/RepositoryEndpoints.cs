@@ -79,5 +79,12 @@ public static class RepositoryEndpoints
             var auditors = await service.GetAuditorsAsync(id);
             return Results.Ok(auditors);
         });
+
+        group.MapGet("/{id}/auditors/details", async (IAuditorService service, Guid id, HttpContext httpContext) =>
+        {
+            var authorizationHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
+            var details = await service.GetAuditorsDetailsAsync(id, authorizationHeader);
+            return Results.Ok(details);
+        });
     }
 }
