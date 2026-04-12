@@ -1,6 +1,10 @@
 using Syncing.Interfaces;
 using System.Net.Http.Json;
-using Octokit;
+using GitHub;
+using GitHub.Octokit.Client;
+using GitHub.Octokit.Client.Authentication;
+using GitHub.Models;
+using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Extensions.Configuration;
 using ReviewProxy.Contracts;
 using Microsoft.Extensions.Logging;
@@ -54,22 +58,32 @@ public class SyncingService : ISyncingService
         });
     }
 
+    private GitHubClient CreateGitHubClient(string token)
+    {
+        var tokenProvider = new TokenProvider(token);
+        var adapter = RequestAdapter.Create(new TokenAuthProvider(tokenProvider));
+        return new GitHubClient(adapter);
+    }
+
     public async Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken)
     {
-        var github = new GitHubClient(new ProductHeaderValue("ReviewProxy"))
-        {
-            Credentials = new Credentials(accessToken)
-        };
+        var github = CreateGitHubClient(accessToken);
 
         try
         {
-            var installationsResponse = await github.GitHubApps.GetAllInstallationsForCurrentUser();
+            var installationsResponse = await github.User.Installations.GetAsync();
             var allRepos = new List<Repository>();
 
-            foreach (var installation in installationsResponse.Installations)
+            if (installationsResponse?.Installations != null)
             {
-                var reposResponse = await github.GitHubApps.Installation.GetAllRepositoriesForCurrentUser(installation.Id);
-                allRepos.AddRange(reposResponse.Repositories);
+                foreach (var installation in installationsResponse.Installations)
+                {
+                    var reposResponse = await github.User.Installations[installation.Id ?? 0].Repositories.GetAsync();
+                    if (reposResponse?.Repositories != null)
+                    {
+                        allRepos.AddRange(reposResponse.Repositories);
+                    }
+                }
             }
 
             if (allRepos.Any())
@@ -89,8 +103,9 @@ public class SyncingService : ISyncingService
         {
             _logger.LogError(ex, "Error fetching via installations");
         }
-        var userRepos = await github.Repository.GetAllForCurrent();
-        return userRepos.Select(r => new
+
+        var userRepos = await github.User.Repos.GetAsync();
+        return (userRepos ?? new List<Repository>()).Select(r => new
         {
             id = r.Id,
             name = r.Name,
@@ -119,30 +134,55 @@ public class SyncingService : ISyncingService
         var rawKey = await File.ReadAllTextAsync(keyPath);
         var jwt = GenerateGitHubJwt(appId, rawKey);
 
-        var github = new GitHubClient(new ProductHeaderValue("ReviewProxy"))
-        {
-            Credentials = new Credentials(jwt, AuthenticationType.Bearer)
-        };
+        var github = CreateGitHubClient(jwt);
 
         if (!long.TryParse(approvalEvent.GitHubRepoId, out var repoId))
         {
             throw new ArgumentException("Invalid GitHub Repository ID.");
         }
 
-        var installation = await github.GitHubApps.GetRepositoryInstallationForCurrent(repoId);
-        var response = await github.GitHubApps.CreateInstallationToken(installation.Id);
+        // Use WithUrl to overcome missing /repositories/{id}/installation in the alpha SDK
+        const string baseUrl = "https://api.github.com";
+        var installationUrl = $"{baseUrl}/repositories/{repoId}/installation";
+        var installation = await github.Repos[""][""].Installation.WithUrl(installationUrl).GetAsync();
 
-        var installationClient = new GitHubClient(new ProductHeaderValue("ReviewProxy"))
+        if (installation == null || installation.Id == null)
         {
-            Credentials = new Credentials(response.Token)
-        };
+            throw new InvalidOperationException($"Could not find installation for repository {repoId}");
+        }
 
-        var newIssue = new NewIssue(approvalEvent.Title)
+        // Get installation token using Access_tokens sub-path and model
+        var tokenRequest = new GitHub.App.Installations.Item.Access_tokens.Access_tokensPostRequestBody();
+        var tokenResponse = await github.App.Installations[installation.Id.Value].Access_tokens.PostAsync(tokenRequest);
+
+        if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.Token))
         {
+            throw new InvalidOperationException("Failed to create installation token.");
+        }
+
+        var installationClient = CreateGitHubClient(tokenResponse.Token);
+
+        // Get owner and name for issue creation using ID-based access
+        var repoUrl = $"{baseUrl}/repositories/{repoId}";
+        var repository = await github.Repos[""][""].WithUrl(repoUrl).GetAsync();
+        if (repository == null || repository.Owner == null || string.IsNullOrEmpty(repository.Owner.Login) || string.IsNullOrEmpty(repository.Name))
+        {
+            throw new InvalidOperationException($"Could not fetch repository details for ID {repoId}");
+        }
+
+        var owner = repository.Owner.Login;
+        var repoName = repository.Name;
+
+        var requestBody = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
+        {
+            Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title
+            {
+                String = approvalEvent.Title
+            },
             Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}."
         };
 
-        await installationClient.Issue.Create(repoId, newIssue);
+        await installationClient.Repos[owner][repoName].Issues.PostAsync(requestBody);
     }
 
     private string GenerateGitHubJwt(string appId, string privateKeyPem)
