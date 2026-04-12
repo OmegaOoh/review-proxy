@@ -5,6 +5,8 @@ using Scalar.AspNetCore;
 using Syncing.APIs;
 using Syncing.Interfaces;
 using Syncing.Services;
+using MassTransit;
+using ReviewProxy.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,30 @@ builder.Services.AddHttpClient("identity", client =>
 });
 
 builder.Services.AddScoped<ISyncingService, SyncingService>();
+
+// MassTransit
+builder.Services.AddMassTransit(options =>
+    {
+        options.AddConsumer<IssueApprovalConsumer>();
+
+        options.UsingRabbitMq((context, cfg) =>
+        {
+            cfg.Host(new Uri(builder.Configuration["MassTransit:Host"] ?? "rabbitmq://localhost:5672"), h =>
+            {
+                h.Username(builder.Configuration["MassTransit:Username"] ?? "guest");
+                h.Password(builder.Configuration["MassTransit:Password"] ?? "guest");
+            });
+
+            cfg.Message<IssueApprovalEvent>(e => e.SetEntityName("issue-approval-exchange"));
+
+            cfg.ReceiveEndpoint("syncing-service-issue-approval", e =>
+            {
+                e.ConfigureConsumer<IssueApprovalConsumer>(context);
+            });
+
+            cfg.ConfigureEndpoints(context);
+        });
+    });
 
 // GitHub OAuth owns the full auth flow in this service.
 // Cookie holds the OAuth session; after /me is called the JWT is handed off to the client.

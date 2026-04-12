@@ -3,11 +3,14 @@ using System.Net.Http.Json;
 using Octokit;
 using GitHubJwt;
 using Microsoft.Extensions.Configuration;
+using ReviewProxy.Contracts;
 
 namespace Syncing.Services;
 
-public class SyncingService(IHttpClientFactory httpClientFactory) : ISyncingService
+public class SyncingService(IHttpClientFactory httpClientFactory, IConfiguration configuration) : ISyncingService
 {
+    private readonly IConfiguration _configuration = configuration;
+
     public async Task<string> ExchangeGitHubUserAsync(string githubId, string username, string? avatarUrl)
     {
         var client = httpClientFactory.CreateClient("identity");
@@ -88,5 +91,55 @@ public class SyncingService(IHttpClientFactory httpClientFactory) : ISyncingServ
             html_url = r.HtmlUrl,
             @private = r.Private
         });
+    }
+
+    public async Task SyncIssueToGitHubAsync(IssueApprovalEvent approvalEvent)
+    {
+        var appId = _configuration["GitHub:AppId"];
+        var privateKey = _configuration["GitHub:PrivateKey"]?.Replace("\\n", "\n");
+
+        if (string.IsNullOrEmpty(appId) || string.IsNullOrEmpty(privateKey))
+        {
+            throw new InvalidOperationException("GitHub App credentials are not configured.");
+        }
+
+        var generator = new GitHubJwtFactory(
+            new StringPrivateKeySource(privateKey),
+            new GitHubJwtFactoryOptions
+            {
+                AppIntegrationId = int.Parse(appId),
+                ExpirationSeconds = 600 // 10 minutes
+            }
+        );
+
+        var jwt = generator.CreateEncodedJwtToken();
+
+        var github = new GitHubClient(new ProductHeaderValue("ReviewProxy"))
+        {
+            Credentials = new Credentials(jwt, AuthenticationType.Bearer)
+        };
+
+        if (!long.TryParse(approvalEvent.GitHubRepoId, out var repoId))
+        {
+            throw new ArgumentException("Invalid GitHub Repository ID.");
+        }
+
+        // Find the installation for this repository
+        var installation = await github.GitHubApps.GetRepositoryInstallationForCurrent(repoId);
+
+        // Get an installation token
+        var response = await github.GitHubApps.CreateInstallationToken(installation.Id);
+
+        var installationClient = new GitHubClient(new ProductHeaderValue("ReviewProxy"))
+        {
+            Credentials = new Credentials(response.Token)
+        };
+
+        var newIssue = new NewIssue(approvalEvent.Title)
+        {
+            Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}."
+        };
+
+        await installationClient.Issue.Create(repoId, newIssue);
     }
 }

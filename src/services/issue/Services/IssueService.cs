@@ -106,6 +106,7 @@ public class IssueService(IssueDbContext context, IPublishEndpoint publishEndpoi
         {
             IssueId = existingIssue.Id,
             ApproverId = userGuid,
+            GitHubRepoId = repo.GitHubRepoId,
             Title = existingIssue.Title,
             Body = existingIssue.Body,
             IssueOwner = existingIssue.OwnerId,
