@@ -68,35 +68,52 @@ public class SyncingService : ISyncingService
     public async Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken)
     {
         var github = CreateGitHubClient(accessToken);
+        var allRepos = new List<Repository>();
 
         try
         {
-            var installationsResponse = await github.User.Installations.GetAsync();
-            var allRepos = new List<Repository>();
-
-            if (installationsResponse?.Installations != null)
+            // Paginate through user installations
+            int installationPage = 1;
+            int perPage = 100;
+            while (true)
             {
+                var installationsResponse = await github.User.Installations.GetAsync(p =>
+                {
+                    p.QueryParameters.Page = installationPage;
+                    p.QueryParameters.PerPage = perPage;
+                });
+
+                if (installationsResponse?.Installations == null || !installationsResponse.Installations.Any())
+                    break;
+
                 foreach (var installation in installationsResponse.Installations)
                 {
-                    var reposResponse = await github.User.Installations[installation.Id ?? 0].Repositories.GetAsync();
-                    if (reposResponse?.Repositories != null)
+                    // Paginate through repositories for each installation
+                    int repoPage = 1;
+                    while (true)
                     {
+                        var reposResponse = await github.User.Installations[installation.Id ?? 0].Repositories.GetAsync(p =>
+                        {
+                            p.QueryParameters.Page = repoPage;
+                            p.QueryParameters.PerPage = perPage;
+                        });
+
+                        if (reposResponse?.Repositories == null || !reposResponse.Repositories.Any())
+                            break;
+
                         allRepos.AddRange(reposResponse.Repositories);
+
+                        if (reposResponse.Repositories.Count < perPage)
+                            break;
+
+                        repoPage++;
                     }
                 }
-            }
 
-            if (allRepos.Any())
-            {
-                return allRepos.DistinctBy(r => r.Id).Select(r => new
-                {
-                    id = r.Id,
-                    name = r.Name,
-                    full_name = r.FullName,
-                    description = r.Description,
-                    html_url = r.HtmlUrl,
-                    @private = r.Private
-                });
+                if (installationsResponse.Installations.Count < perPage)
+                    break;
+
+                installationPage++;
             }
         }
         catch (Exception ex)
@@ -104,8 +121,36 @@ public class SyncingService : ISyncingService
             _logger.LogError(ex, "Error fetching via installations");
         }
 
-        var userRepos = await github.User.Repos.GetAsync();
-        return (userRepos ?? new List<Repository>()).Select(r => new
+        try
+        {
+            // Paginate through direct user repositories
+            int userRepoPage = 1;
+            int perPage = 100;
+            while (true)
+            {
+                var userRepos = await github.User.Repos.GetAsync(p =>
+                {
+                    p.QueryParameters.Page = userRepoPage;
+                    p.QueryParameters.PerPage = perPage;
+                });
+
+                if (userRepos == null || !userRepos.Any())
+                    break;
+
+                allRepos.AddRange(userRepos);
+
+                if (userRepos.Count < perPage)
+                    break;
+
+                userRepoPage++;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching direct user repos");
+        }
+
+        return allRepos.DistinctBy(r => r.Id).Select(r => new
         {
             id = r.Id,
             name = r.Name,
