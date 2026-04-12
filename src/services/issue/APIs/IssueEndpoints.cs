@@ -109,7 +109,7 @@ public static class IssueEndpoints
                 try
                 {
                     await issueService.ApproveIssueAsync(id, userId);
-                    return Results.Ok();
+                    return Results.NoContent();
                 }
                 catch (KeyNotFoundException ex)
                 {
@@ -143,7 +143,7 @@ public static class IssueEndpoints
             try
             {
                 await issueService.RejectIssueAsync(id, userId);
-                return Results.Ok();
+                return Results.NoContent();
             }
             catch (KeyNotFoundException ex)
             {
