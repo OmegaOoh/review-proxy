@@ -21,6 +21,7 @@ public class RepositoryEventPublisher(RepoDbContext dbContext, IPublishEndpoint 
         await publishEndpoint.Publish(new SyncAuditorListEvent
         {
             RepositoryId = repoId,
+            GitHubRepoId = repo.GitHubRepoId,
             Auditors = auditors ?? []
         });
     }

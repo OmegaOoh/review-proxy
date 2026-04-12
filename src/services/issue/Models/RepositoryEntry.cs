@@ -6,6 +6,9 @@ public class RepositoryEntry
     [Key]
     public Guid Id { get; set; }
 
+    [Required]
+    public required string GitHubRepoId { get; set; }
+
     public Guid[] AuditorsId { get; set; } = [];
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

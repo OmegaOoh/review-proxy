@@ -27,16 +27,25 @@ public class SyncAuditorsEventConsumer(
                 repository = new RepositoryEntry
                 {
                     Id = repoId,
-                    AuditorsId = [.. eventData.Auditors]
+                    GitHubRepoId = eventData.GitHubRepoId,
+                    AuditorsId = [.. eventData.Auditors],
+                    LastUpdated = eventData.UtcTime,
+                    CreatedAt = eventData.UtcTime,
                 };
                 dbContext.Repositories.Add(repository);
             }
             else
             {
+                if (eventData.UtcTime < repository.LastUpdated)
+                {
+                    logger.LogWarning("Ignored stale message for Repository {RepositoryId}. Event time: {EventTime}, Last data updated: {LastUpdated}",
+                                      repoId, eventData.UtcTime, repository.LastUpdated);
+                    return; // Return early to avoid processing stale messages
+                }
+                repository.GitHubRepoId = eventData.GitHubRepoId;
                 repository.AuditorsId = [.. eventData.Auditors];
-                repository.LastUpdated = DateTime.UtcNow;
+                repository.LastUpdated = eventData.UtcTime;
             }
-
             await dbContext.SaveChangesAsync();
         }
         catch (Exception ex)
