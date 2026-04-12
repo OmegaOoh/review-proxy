@@ -50,7 +50,8 @@ services:
   syncing:
     restart: always
     build:
-      context: ./src/services/syncing
+      context: .
+      dockerfile: src/services/syncing/Dockerfile
     entrypoint: ["dotnet", "syncing.dll"]
     ports:
       - "5248:80"
@@ -59,6 +60,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=compose
       - GitHub__ClientId=${GitHub__ClientId}
       - GitHub__ClientSecret=${GitHub__ClientSecret}
+      - GitHub__AppId=${GitHub__AppId}
+      - GitHub__AppSecret=${GitHub__AppSecret}
+      - MassTransit__Host=rabbitmq://rabbitmq:5672
     depends_on:
       - identity
 
