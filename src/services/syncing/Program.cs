@@ -31,6 +31,7 @@ builder.Services.AddHttpClient("identity", client =>
         client.DefaultRequestHeaders.Add("X-Internal-Secret", secret);
 });
 
+builder.Services.AddScoped<IGitHubService, GitHubService>();
 builder.Services.AddScoped<ISyncingService, SyncingService>();
 
 // MassTransit
