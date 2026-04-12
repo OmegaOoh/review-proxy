@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
@@ -6,7 +5,6 @@ using GitHub;
 using GitHub.Octokit.Client;
 using GitHub.Octokit.Client.Authentication;
 using GitHub.Models;
-using Microsoft.Kiota.Abstractions.Authentication;
 using ReviewProxy.Contracts;
 using Syncing.Interfaces;
 
@@ -116,10 +114,12 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         if (string.IsNullOrEmpty(tokenResponse?.Token)) throw new InvalidOperationException("Token creation failed");
 
         var instClient = CreateGitHubClient(tokenResponse.Token);
-        var repo = await github.Repos[""][""].WithUrl($"https://api.github.com/repos/{approvalEvent.GitHubRepoId}").GetAsync();
-        if (repo?.Owner?.Login == null || repo.Name == null) throw new InvalidOperationException("Repo details not found");
+        var repoParts = approvalEvent.GitHubRepoId.Split('/');
+        if (repoParts.Length < 2) throw new InvalidOperationException($"Invalid GitHubRepoId: {approvalEvent.GitHubRepoId}");
+        var repoOwner = repoParts[0];
+        var repoName = repoParts[1];
 
-        await instClient.Repos[repo.Owner.Login][repo.Name].Issues.PostAsync(new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
+        await instClient.Repos[repoOwner][repoName].Issues.PostAsync(new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
         {
             Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title { String = approvalEvent.Title },
             Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}.\n"
