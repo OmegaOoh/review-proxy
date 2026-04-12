@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Json;
 using Microsoft.IdentityModel.Tokens;
 using GitHub;
 using GitHub.Octokit.Client;
@@ -119,12 +120,62 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         var repoOwner = repoParts[0];
         var repoName = repoParts[1];
 
+        // Fetch user details from Identity Service
+        // Both IssueOwner and ApproverId are stored as internal Guids in their respective services
+        var creator = await GetGitHubUserByIdAsync(approvalEvent.IssueOwner);
+        var approver = await GetGitHubUserByIdAsync(approvalEvent.ApproverId.ToString());
+
+        var creatorMention = creator != null ? $"@{creator.GitHubUsername}" : "Unknown User";
+        var approverGitHubId = approver?.GitHubID ?? "N/A";
+
+        var issueBody = $"""
+            {approvalEvent.Body}
+
+            ---
+            **Reported by:** {creatorMention}
+
+            <sub>**ReviewProxy Metadata**
+            Issue ID: `{approvalEvent.IssueId}`
+            Approver ID: `{approvalEvent.ApproverId}`
+            Approved at: {approvalEvent.UtcTime:yyyy-MM-dd HH:mm:ss} UTC</sub>
+            """;
+
         await instClient.Repos[repoOwner][repoName].Issues.PostAsync(new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
         {
             Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title { String = approvalEvent.Title },
-            Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}.\n"
+            Body = issueBody
         });
     }
+
+    private async Task<GitHubUser?> GetGitHubUserByIdAsync(string userId)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("identity");
+            return await client.GetFromJsonAsync<GitHubUser>($"/api/identities/{userId}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to fetch user {UserId} by internal ID from identity service", userId);
+            return null;
+        }
+    }
+
+    private async Task<GitHubUser?> GetGitHubUserByGitHubIdAsync(string githubId)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("identity");
+            return await client.GetFromJsonAsync<GitHubUser>($"/api/identities/github/{githubId}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to fetch user {GitHubId} by GitHub ID from identity service", githubId);
+            return null;
+        }
+    }
+
+    private record GitHubUser(string GitHubUsername, string GitHubID);
 
     public async Task<object> GetSyncContextAsync()
     {

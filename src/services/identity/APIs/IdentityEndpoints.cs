@@ -63,21 +63,39 @@ public static class IdentityEndpoints
             return Results.Ok(dbUser);
         }).RequireAuthorization();
 
-        group.MapGet("/{id:guid}", async (Guid id, IIdentityService identityService) =>
+        group.MapGet("/{id:guid}", async (
+            Guid id,
+            IIdentityService identityService,
+            HttpContext httpContext,
+            IConfiguration configuration) =>
         {
+            var configuredSecret = configuration["Services:InternalSecret"];
+            var providedSecret = httpContext.Request.Headers["X-Internal-Secret"].FirstOrDefault();
+            bool isInternal = !string.IsNullOrWhiteSpace(configuredSecret) && providedSecret == configuredSecret;
+
+            if (!isInternal && httpContext.User.Identity?.IsAuthenticated != true)
+                return Results.Unauthorized();
+
             var dbUser = await identityService.GetUserByIdAsync(id);
+            return dbUser != null ? Results.Ok(dbUser) : Results.NotFound();
+        });
 
-            if (dbUser == null)
-                return Results.NotFound();
-
-            return Results.Ok(dbUser);
-        }).RequireAuthorization();
-
-        group.MapPost("/batch", async ([FromBody] List<Guid> ids, IIdentityService identityService) =>
+        group.MapPost("/batch", async (
+            [FromBody] List<Guid> ids,
+            IIdentityService identityService,
+            HttpContext httpContext,
+            IConfiguration configuration) =>
         {
+            var configuredSecret = configuration["Services:InternalSecret"];
+            var providedSecret = httpContext.Request.Headers["X-Internal-Secret"].FirstOrDefault();
+            bool isInternal = !string.IsNullOrWhiteSpace(configuredSecret) && providedSecret == configuredSecret;
+
+            if (!isInternal && httpContext.User.Identity?.IsAuthenticated != true)
+                return Results.Unauthorized();
+
             var users = await identityService.GetUsersByIdsAsync(ids);
             return Results.Ok(users);
-        }).RequireAuthorization();
+        });
 
         group.MapGet("/", async ([FromQuery] string? query, IIdentityService identityService) =>
         {
