@@ -143,6 +143,33 @@
                         </button>
                     </div>
 
+                    <!-- Guidance Section -->
+                    <div
+                        class="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-3xl"
+                    >
+                        <h4
+                            class="text-blue-900 dark:text-blue-300 font-bold mb-2 flex items-center gap-2"
+                        >
+                            <i class="pi pi-info-circle"></i>
+                            GitHub App Required
+                        </h4>
+                        <p
+                            class="text-sm text-blue-700 dark:text-blue-400 leading-relaxed mb-4"
+                        >
+                            To allow ReviewProxy to manage issues, you must
+                            first install our GitHub App on your target
+                            repositories.
+                        </p>
+                        <a
+                            :href="syncContext?.installation_url"
+                            target="_blank"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-200 dark:shadow-none"
+                        >
+                            <i class="pi pi-external-link"></i>
+                            Install GitHub App
+                        </a>
+                    </div>
+
                     <form @submit.prevent="handleDeposit" class="space-y-6">
                         <div>
                             <label
@@ -167,11 +194,44 @@
                                         :value="repo.full_name"
                                     >
                                         {{ repo.full_name }}
+                                        {{
+                                            repo.is_installed
+                                                ? ""
+                                                : "(App Not Installed)"
+                                        }}
                                     </option>
                                 </select>
                                 <i
                                     class="pi pi-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                                 ></i>
+                            </div>
+                            <div
+                                v-if="
+                                    selectedRepoDetails &&
+                                    !selectedRepoDetails.is_installed
+                                "
+                                class="mt-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl"
+                            >
+                                <p
+                                    class="text-sm text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2 font-medium"
+                                >
+                                    <i class="pi pi-exclamation-triangle"></i>
+                                    ReviewProxy App is not installed.
+                                </p>
+                                <a
+                                    :href="syncContext?.installation_url"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                                >
+                                    <i class="pi pi-external-link"></i>
+                                    Install GitHub App
+                                </a>
+                                <p
+                                    class="text-[10px] text-amber-600 dark:text-amber-500 mt-2"
+                                >
+                                    After installing, refresh the list or
+                                    re-open this modal.
+                                </p>
                             </div>
                         </div>
 
@@ -276,7 +336,10 @@
                             <button
                                 type="submit"
                                 :disabled="
-                                    depositing || !depositForm.githubRepoId
+                                    depositing ||
+                                    !depositForm.githubRepoId ||
+                                    (selectedRepoDetails &&
+                                        !selectedRepoDetails.is_installed)
                                 "
                                 class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none transition-all disabled:opacity-50 flex items-center gap-2"
                             >
@@ -334,6 +397,13 @@ const selectedAuditors = ref<User[]>([]);
 const depositing = ref(false);
 const githubRepositories = ref<any[]>([]);
 const loadingGithubRepos = ref(false);
+const syncContext = ref<any>(null);
+
+const selectedRepoDetails = computed(() =>
+    githubRepositories.value.find(
+        (r) => r.full_name === depositForm.value.githubRepoId,
+    ),
+);
 
 // Search State
 const userSearchQuery = ref("");
@@ -345,8 +415,16 @@ let searchTimeout: any = null;
 const showCreateIssueModal = ref(false);
 const selectedRepoForIssue = ref<Repository | null>(null);
 
+const fetchSyncContext = async () => {
+    if (syncContext.value) return;
+    try {
+        syncContext.value = await api.get<any>("/api/sync/context");
+    } catch (err) {
+        console.error("Failed to fetch sync context", err);
+    }
+};
+
 const fetchGithubRepos = async () => {
-    if (githubRepositories.value.length > 0) return;
     loadingGithubRepos.value = true;
     try {
         githubRepositories.value = await api.get<any[]>(
@@ -385,6 +463,7 @@ watch(userSearchQuery, (newVal) => {
 const openDepositModal = () => {
     showDepositModal.value = true;
     fetchGithubRepos();
+    fetchSyncContext();
 };
 
 const addAuditor = (user: User) => {

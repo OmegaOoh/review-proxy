@@ -32,7 +32,7 @@ public static class SyncingEndpoints
         // Called by the frontend after the OAuth cookie is set.
         // Reads the GitHub claims from the cookie session, forwards them to IdentityService
         // to upsert the user and issue a JWT, then returns { user, token } to the client.
-        group.MapGet("/me", async (ClaimsPrincipal user, ISyncingService syncingService) =>
+        group.MapGet("/me", async (HttpContext httpContext, ClaimsPrincipal user, ISyncingService syncingService) =>
         {
             if (user.Identity?.IsAuthenticated != true)
             {
@@ -48,7 +48,9 @@ public static class SyncingEndpoints
                 return Results.Unauthorized();
             }
 
-            var json = await syncingService.ExchangeGitHubUserAsync(githubId, username, avatarUrl);
+            var githubToken = await httpContext.GetAsyncToken("access_token");
+
+            var json = await syncingService.ExchangeGitHubUserAsync(githubId, username, avatarUrl, githubToken);
             return Results.Content(json, "application/json");
 
         }).RequireAuthorization();
@@ -66,6 +68,12 @@ public static class SyncingEndpoints
             var repos = await syncingService.GetUserRepositoriesAsync(accessToken);
             return Results.Ok(repos);
 
+        }).RequireAuthorization();
+
+        group.MapGet("/context", async (ISyncingService syncingService) =>
+        {
+            var context = await syncingService.GetSyncContextAsync();
+            return Results.Ok(context);
         }).RequireAuthorization();
     }
 }

@@ -75,10 +75,26 @@ Start the development server:
 bun run dev
 ```
 
-## Authentication Setup
+## Authentication & GitHub App Setup
 
-The Identity service uses GitHub OAuth for authentication. You will need to set up a GitHub OAuth application and provide your `ClientId` and `ClientSecret` to the Identity service configuration (e.g., via User Secrets, `appsettings.Development.json`, or environment variables).
+### 1. GitHub OAuth App
+The Identity service uses GitHub OAuth for authentication. Create a GitHub OAuth application and provide your `ClientId` and `ClientSecret` to the Identity service configuration.
+
+### 2. GitHub App (Required for Syncing)
+To sync issues and perform actions on repositories, you must create a GitHub App:
+1.  **Permissions**:
+    - **Issues**: Read & Write
+    - **Metadata**: Read-only (required for all apps)
+2.  **Configuration**:
+    - Provide the `AppId`, `ClientId`, `ClientSecret`, and the `PrivateKey` (.pem file path) to the `syncing` service configuration.
+    - Set the `AppSlug` (found in your GitHub App's "Public link" setting) in the `syncing` service configuration. **Important**: An incorrect slug will result in a 404 error on the installation page.
+3.  **Installation**:
+    - Users must install the app on their account or specific repositories before depositing them in ReviewProxy.
+    - The application provides a direct link to the installation page in the "Deposit Repository" modal.
 
 ### Environment Variables
-- `GitHub__ClientId`: Your GitHub OAuth application client ID
-- `GitHub__ClientSecret`: Your GitHub OAuth application client secret
+- `GitHub__ClientId`: Your GitHub App/OAuth client ID
+- `GitHub__ClientSecret`: Your GitHub App/OAuth client secret
+- `GitHub__AppId`: Your GitHub App ID
+- `GitHub__AppSlug`: Your GitHub App slug (e.g. `review-proxy`)
+- `GitHub__PrivateKeyPath`: Path to your GitHub App private key `.pem` file

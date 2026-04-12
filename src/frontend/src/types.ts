@@ -21,6 +21,7 @@ export interface Repository {
   description: string;
   auditorsIds: string[];
   createdAt: string;
+  is_installed?: boolean;
   // Client-side extensions for convenience
   owner?: User;
   auditors?: User[];

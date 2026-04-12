@@ -6,4 +6,5 @@ public interface IGitHubService
 {
     Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken);
     Task SyncIssueToGitHubAsync(IssueApprovalEvent approvalEvent);
+    Task<object> GetSyncContextAsync();
 }

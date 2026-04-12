@@ -19,10 +19,16 @@ export const useAuthStore = defineStore("auth", () => {
       // Sync with session cookie if no token in local storage
       if (!token) {
         try {
-          const syncData = await api.get<{ token: string }>("/api/sync/me");
+          const syncData = await api.get<{
+            token: string;
+            github_token?: string;
+          }>("/api/sync/me");
           if (syncData.token) {
             token = syncData.token;
             localStorage.setItem("token", syncData.token);
+            if (syncData.github_token) {
+              localStorage.setItem("github_token", syncData.github_token);
+            }
           }
         } catch (err) {
           console.warn("Authentication session sync failed", err);
@@ -40,9 +46,16 @@ export const useAuthStore = defineStore("auth", () => {
         // Potential auto-recovery for expired or stale tokens
         if (err.message.includes("401") || err.message.includes("Not Found")) {
           localStorage.removeItem("token");
-          const syncData = await api.get<{ token: string }>("/api/sync/me");
+          localStorage.removeItem("github_token");
+          const syncData = await api.get<{
+            token: string;
+            github_token?: string;
+          }>("/api/sync/me");
           if (syncData.token) {
             localStorage.setItem("token", syncData.token);
+            if (syncData.github_token) {
+              localStorage.setItem("github_token", syncData.github_token);
+            }
             user.value = await api.get<User>("/api/identities/me");
             return;
           }
@@ -64,6 +77,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   function signOut() {
     localStorage.removeItem("token");
+    localStorage.removeItem("github_token");
     window.location.href = `/api/sync/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
   }
 

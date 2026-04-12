@@ -7,7 +7,7 @@ namespace Syncing.Services;
 
 public class SyncingService(IHttpClientFactory httpClientFactory, IGitHubService githubService) : ISyncingService
 {
-    public async Task<string> ExchangeGitHubUserAsync(string githubId, string username, string? avatarUrl)
+    public async Task<string> ExchangeGitHubUserAsync(string githubId, string username, string? avatarUrl, string? githubToken)
     {
         var client = httpClientFactory.CreateClient("identity");
         var response = await client.PostAsJsonAsync("/api/identities/exchange", new
@@ -23,7 +23,8 @@ public class SyncingService(IHttpClientFactory httpClientFactory, IGitHubService
         return JsonSerializer.Serialize(new
         {
             user = result.GetProperty("user"),
-            token = result.GetProperty("token").GetString()
+            token = result.GetProperty("token").GetString(),
+            github_token = githubToken
         });
     }
 
@@ -32,4 +33,7 @@ public class SyncingService(IHttpClientFactory httpClientFactory, IGitHubService
 
     public Task SyncIssueToGitHubAsync(IssueApprovalEvent approvalEvent) =>
         githubService.SyncIssueToGitHubAsync(approvalEvent);
+
+    public Task<object> GetSyncContextAsync() =>
+        githubService.GetSyncContextAsync();
 }

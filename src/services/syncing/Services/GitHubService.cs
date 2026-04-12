@@ -26,8 +26,9 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
     {
         var github = CreateGitHubClient(accessToken);
         var allRepos = new List<Repository>();
+        var installedRepoIds = new HashSet<long>();
 
-        try { await FetchAllInstallationsReposAsync(github, allRepos); }
+        try { await FetchAllInstallationsReposAsync(github, allRepos, installedRepoIds); }
         catch (Exception ex) { logger.LogError(ex, "Error fetching via installations"); }
 
         try { await FetchDirectUserReposAsync(github, allRepos); }
@@ -40,11 +41,12 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
             full_name = r.FullName,
             description = r.Description,
             html_url = r.HtmlUrl,
-            @private = r.Private
+            @private = r.Private,
+            is_installed = installedRepoIds.Contains(r.Id ?? 0)
         });
     }
 
-    private async Task FetchAllInstallationsReposAsync(GitHubClient github, List<Repository> allRepos)
+    private async Task FetchAllInstallationsReposAsync(GitHubClient github, List<Repository> allRepos, HashSet<long> installedRepoIds)
     {
         int page = 1, perPage = 100;
         while (true)
@@ -53,14 +55,14 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
             if (response?.Installations == null || !response.Installations.Any()) break;
 
             foreach (var inst in response.Installations)
-                await FetchInstallationReposAsync(github, inst.Id ?? 0, allRepos);
+                await FetchInstallationReposAsync(github, inst.Id ?? 0, allRepos, installedRepoIds);
 
             if (response.Installations.Count < perPage) break;
             page++;
         }
     }
 
-    private async Task FetchInstallationReposAsync(GitHubClient github, long installationId, List<Repository> allRepos)
+    private async Task FetchInstallationReposAsync(GitHubClient github, long installationId, List<Repository> allRepos, HashSet<long> installedRepoIds)
     {
         int page = 1, perPage = 100;
         while (true)
@@ -68,7 +70,12 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
             var response = await github.User.Installations[(int)installationId].Repositories.GetAsync(p => { p.QueryParameters.Page = page; p.QueryParameters.PerPage = perPage; });
             if (response?.Repositories == null || !response.Repositories.Any()) break;
 
+            foreach (var repo in response.Repositories)
+            {
+                if (repo.Id.HasValue) installedRepoIds.Add(repo.Id.Value);
+            }
             allRepos.AddRange(response.Repositories);
+
             if (response.Repositories.Count < perPage) break;
             page++;
         }
@@ -117,6 +124,16 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
             Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title { String = approvalEvent.Title },
             Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}.\n"
         });
+    }
+
+    public async Task<object> GetSyncContextAsync()
+    {
+        var appSlug = configuration["GitHub:AppSlug"] ?? "review-proxy";
+        return new
+        {
+            app_slug = appSlug,
+            installation_url = $"https://github.com/apps/{appSlug}/installations/new"
+        };
     }
 
     private string GenerateGitHubJwt(string appId, string privateKeyPem)

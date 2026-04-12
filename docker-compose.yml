@@ -61,6 +61,7 @@ services:
       - GitHub__ClientId=${GitHub__ClientId}
       - GitHub__ClientSecret=${GitHub__ClientSecret}
       - GitHub__AppId=${GitHub__AppId}
+      - GitHub__AppSlug=${GitHub__AppSlug}
       - MassTransit__Host=rabbitmq://rabbitmq:5672
     volumes:
       - ${GitHub__PrivateKeyPath}:/app/secrets/github_private_key.pem:ro
