@@ -61,10 +61,14 @@ services:
       - GitHub__ClientId=${GitHub__ClientId}
       - GitHub__ClientSecret=${GitHub__ClientSecret}
       - GitHub__AppId=${GitHub__AppId}
-      - GitHub__AppSecret=${GitHub__AppSecret}
       - MassTransit__Host=rabbitmq://rabbitmq:5672
+    volumes:
+      - ${GitHub__PrivateKeyPath}:/app/secrets/github_private_key.pem:ro
     depends_on:
-      - identity
+      identity:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   issue:
     restart: always
