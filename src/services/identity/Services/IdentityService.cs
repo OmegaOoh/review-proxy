@@ -71,6 +71,7 @@ public class IdentityService(
             {
                 var client = httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+                client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
 
                 var response = await client.GetAsync($"https://api.github.com/search/users?q={query}");
                 if (response.IsSuccessStatusCode)

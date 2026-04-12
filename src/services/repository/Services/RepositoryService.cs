@@ -29,6 +29,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
 
         var client = httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
 
         if (!string.IsNullOrWhiteSpace(githubToken))
         {
@@ -42,6 +43,8 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
         }
 
         var json = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var fullName = json.GetProperty("full_name").GetString() ?? githubRepoId;
+
         if (json.TryGetProperty("permissions", out var permissions))
         {
             var admin = permissions.TryGetProperty("admin", out var a) && a.GetBoolean();
@@ -61,7 +64,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
         var entry = new RepositoryEntry
         {
             Id = Guid.NewGuid(),
-            GitHubRepoId = githubRepoId,
+            GitHubRepoId = fullName,
             OwnerId = ownerId,
             Description = description,
             AuditorsIds = auditors.Select(a => a.ToString()).Where(a => a != ownerId).Distinct().ToList(),

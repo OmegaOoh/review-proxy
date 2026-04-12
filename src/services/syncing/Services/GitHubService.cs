@@ -12,12 +12,13 @@ using Syncing.Interfaces;
 
 namespace Syncing.Services;
 
-public class GitHubService(IConfiguration configuration, ILogger<GitHubService> logger) : IGitHubService
+public class GitHubService(IConfiguration configuration, ILogger<GitHubService> logger, IHttpClientFactory httpClientFactory) : IGitHubService
 {
     private GitHubClient CreateGitHubClient(string token)
     {
+        var httpClient = httpClientFactory.CreateClient("github");
         var tokenProvider = new TokenProvider(token);
-        var adapter = RequestAdapter.Create(new TokenAuthProvider(tokenProvider));
+        var adapter = RequestAdapter.Create(new TokenAuthProvider(tokenProvider), httpClient);
         return new GitHubClient(adapter);
     }
 
@@ -26,23 +27,11 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         var github = CreateGitHubClient(accessToken);
         var allRepos = new List<Repository>();
 
-        try
-        {
-            await FetchAllInstallationsReposAsync(github, allRepos);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error fetching via installations");
-        }
+        try { await FetchAllInstallationsReposAsync(github, allRepos); }
+        catch (Exception ex) { logger.LogError(ex, "Error fetching via installations"); }
 
-        try
-        {
-            await FetchDirectUserReposAsync(github, allRepos);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error fetching direct user repos");
-        }
+        try { await FetchDirectUserReposAsync(github, allRepos); }
+        catch (Exception ex) { logger.LogError(ex, "Error fetching direct user repos"); }
 
         return allRepos.DistinctBy(r => r.Id).Select(r => new
         {
@@ -103,27 +92,30 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
     {
         var appId = configuration["GitHub:AppId"] ?? throw new InvalidOperationException("AppId not set");
         var keyPath = configuration["GitHub:PrivateKeyPath"] ?? throw new InvalidOperationException("KeyPath not set");
-        if (!File.Exists(keyPath)) throw new FileNotFoundException($"Key file not found at {keyPath}");
+        logger.LogInformation("Syncing to GitHub: {Repo}, AppId: {AppId}", approvalEvent.GitHubRepoId, appId);
 
         var jwt = GenerateGitHubJwt(appId, await File.ReadAllTextAsync(keyPath));
         var github = CreateGitHubClient(jwt);
 
-        if (!long.TryParse(approvalEvent.GitHubRepoId, out var repoId)) throw new ArgumentException("Invalid Repo ID");
+        var owner = approvalEvent.GitHubRepoId.Split('/')[0];
+        var installations = await github.App.Installations.GetAsync();
 
-        var inst = await github.Repos[""][""].Installation.WithUrl($"https://api.github.com/repositories/{repoId}/installation").GetAsync();
-        if (inst?.Id == null) throw new InvalidOperationException($"No installation for {repoId}");
+        var inst = installations?.FirstOrDefault(i =>
+            i.Account?.SimpleUser?.Login?.Equals(owner, StringComparison.OrdinalIgnoreCase) == true);
+
+        if (inst?.Id == null) throw new InvalidOperationException($"No installation found for owner {owner}");
 
         var tokenResponse = await github.App.Installations[(int)inst.Id.Value].Access_tokens.PostAsync(new GitHub.App.Installations.Item.Access_tokens.Access_tokensPostRequestBody());
         if (string.IsNullOrEmpty(tokenResponse?.Token)) throw new InvalidOperationException("Token creation failed");
 
         var instClient = CreateGitHubClient(tokenResponse.Token);
-        var repo = await github.Repos[""][""].WithUrl($"https://api.github.com/repositories/{repoId}").GetAsync();
+        var repo = await github.Repos[""][""].WithUrl($"https://api.github.com/repos/{approvalEvent.GitHubRepoId}").GetAsync();
         if (repo?.Owner?.Login == null || repo.Name == null) throw new InvalidOperationException("Repo details not found");
 
         await instClient.Repos[repo.Owner.Login][repo.Name].Issues.PostAsync(new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
         {
             Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title { String = approvalEvent.Title },
-            Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}."
+            Body = $"{approvalEvent.Body}\n\n---\nReviewProxy Issue ID: {approvalEvent.IssueId}\nApproved by user {approvalEvent.ApproverId} via ReviewProxy at {approvalEvent.UtcTime}.\n"
         });
     }
 
@@ -131,13 +123,18 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
     {
         using var rsa = RSA.Create();
         try { rsa.ImportFromPem(privateKeyPem.Replace("\\n", "\n").Trim().ToCharArray()); }
-        catch (Exception ex) { logger.LogError(ex, "RSA import failed"); throw; }
+        catch (Exception ex) { logger.LogError(ex, "RSA import failed. Check PrivateKeyPath."); throw; }
 
-        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
-            issuer: appId,
-            expires: DateTime.UtcNow.AddMinutes(9),
-            notBefore: DateTime.UtcNow.AddSeconds(-60),
-            signingCredentials: new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
-        ));
+        var handler = new JwtSecurityTokenHandler();
+        var now = DateTimeOffset.UtcNow;
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = appId,
+            IssuedAt = now.AddSeconds(-60).UtcDateTime,
+            Expires = now.AddMinutes(9).UtcDateTime,
+            SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
+        };
+
+        return handler.WriteToken(handler.CreateToken(descriptor));
     }
 }

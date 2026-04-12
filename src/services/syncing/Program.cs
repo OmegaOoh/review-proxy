@@ -31,6 +31,12 @@ builder.Services.AddHttpClient("identity", client =>
         client.DefaultRequestHeaders.Add("X-Internal-Secret", secret);
 });
 
+builder.Services.AddHttpClient("github", client =>
+{
+    client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
+    client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
+});
+
 builder.Services.AddScoped<IGitHubService, GitHubService>();
 builder.Services.AddScoped<ISyncingService, SyncingService>();
 
