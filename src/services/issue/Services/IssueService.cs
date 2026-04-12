@@ -3,12 +3,15 @@ using Issue.Data;
 using Issue.Interfaces;
 using Issue.Models;
 using Issue.Models.Dtos;
+using MassTransit;
+using ReviewProxy.Contracts;
 
 namespace Issue.Services;
 
-public class IssueService(IssueDbContext context) : IIssueService
+public class IssueService(IssueDbContext context, IPublishEndpoint publishEndpoint) : IIssueService
 {
     private readonly IssueDbContext _context = context;
+    private readonly IPublishEndpoint _publishEndpoint = publishEndpoint;
 
     public async Task<IEnumerable<IssueEntry>> GetAllIssuesAsync()
     {
@@ -98,6 +101,16 @@ public class IssueService(IssueDbContext context) : IIssueService
         existingIssue.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        await _publishEndpoint.Publish(new IssueApprovalEvent
+        {
+            IssueId = existingIssue.Id,
+            ApproverId = userGuid,
+            Title = existingIssue.Title,
+            Body = existingIssue.Body,
+            IssueOwner = existingIssue.OwnerId,
+            UtcTime = existingIssue.UpdatedAt
+        });
 
         return true;
     }

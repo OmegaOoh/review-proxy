@@ -46,6 +46,7 @@ builder.Services.AddMassTransit(options =>
             });
 
             cfg.Message<SyncAuditorListEvent>(e => e.SetEntityName("auditor-sync-exchange"));
+            cfg.Message<IssueApprovalEvent>(e => e.SetEntityName("issue-approval-exchange"));
 
             cfg.ReceiveEndpoint("issue-service-sync-auditors", e =>
             {
