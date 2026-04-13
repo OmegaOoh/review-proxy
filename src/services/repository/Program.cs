@@ -54,7 +54,9 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddScoped<IRepositoryEventPublisher, RepositoryEventPublisher>();
 builder.Services.AddScoped<IRepositoryService, RepositoryService>();
+builder.Services.AddScoped<IRepositoryQueryService, RepositoryQueryService>();
 builder.Services.AddScoped<IAuditorService, AuditorService>();
+builder.Services.AddScoped<IGitHubRepositoryService, GitHubRepositoryService>();
 
 var app = builder.Build();
 

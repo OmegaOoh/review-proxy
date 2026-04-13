@@ -12,7 +12,7 @@ public static class RepositoryEndpoints
     {
         var group = app.MapGroup("/api/repositories").RequireAuthorization();
 
-        group.MapGet("/", async (IRepositoryService service,
+        group.MapGet("/", async (IRepositoryQueryService service,
             [FromQuery] Guid? ownerId,
             [FromQuery] RepositoryRole? role) =>
         {
