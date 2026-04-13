@@ -36,6 +36,7 @@ builder.Services.AddDbContext<IssueDbContext>(options =>
 builder.Services.AddMassTransit(options =>
     {
         options.AddConsumer<SyncAuditorsEventConsumer>();
+        options.AddConsumer<RepositoryDeletedEventConsumer>();
 
         options.UsingRabbitMq((context, cfg) =>
         {
@@ -47,10 +48,16 @@ builder.Services.AddMassTransit(options =>
 
             cfg.Message<SyncAuditorListEvent>(e => e.SetEntityName("auditor-sync-exchange"));
             cfg.Message<IssueApprovalEvent>(e => e.SetEntityName("issue-approval-exchange"));
+            cfg.Message<RepositoryDeletedEvent>(e => e.SetEntityName("repository-deleted-exchange"));
 
             cfg.ReceiveEndpoint("issue-service-sync-auditors", e =>
             {
                 e.ConfigureConsumer<SyncAuditorsEventConsumer>(context);
+            });
+
+            cfg.ReceiveEndpoint("issue-service-repository-deleted", e =>
+            {
+                e.ConfigureConsumer<RepositoryDeletedEventConsumer>(context);
             });
 
             cfg.ConfigureEndpoints(context);

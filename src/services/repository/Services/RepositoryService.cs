@@ -17,6 +17,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
 
         dbContext.Repositories.Remove(entry);
         await dbContext.SaveChangesAsync();
+        await eventPublisher.PublishRepositoryDeletedAsync(repoId);
         return true;
     }
 

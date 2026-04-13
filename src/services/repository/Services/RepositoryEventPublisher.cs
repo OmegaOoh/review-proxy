@@ -25,4 +25,12 @@ public class RepositoryEventPublisher(RepoDbContext dbContext, IPublishEndpoint 
             Auditors = auditors ?? []
         });
     }
+
+    public async Task PublishRepositoryDeletedAsync(Guid repoId)
+    {
+        await publishEndpoint.Publish(new RepositoryDeletedEvent
+        {
+            RepositoryId = repoId
+        });
+    }
 }

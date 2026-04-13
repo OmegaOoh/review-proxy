@@ -46,6 +46,7 @@ builder.Services.AddMassTransit(options =>
             });
 
             cfg.Message<SyncAuditorListEvent>(e => e.SetEntityName("auditor-sync-exchange"));
+            cfg.Message<RepositoryDeletedEvent>(e => e.SetEntityName("repository-deleted-exchange"));
         });
     });
 
