@@ -17,6 +17,9 @@ builder.Services.AddDbContext<IdentityDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityDbConnection")));
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IGitHubIdentityClient, GitHubIdentityClient>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

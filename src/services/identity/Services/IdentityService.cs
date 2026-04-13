@@ -1,67 +1,25 @@
-using Identity.Data;
 using Identity.Interfaces;
 using Identity.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Text;
 
 namespace Identity.Services;
 
 public class IdentityService(
-    IdentityDBContext context,
-    IConfiguration configuration,
-    IHttpClientFactory httpClientFactory,
+    IUserService userService,
+    IGitHubIdentityClient githubClient,
+    ITokenService tokenService,
     ILogger<IdentityService> logger) : IIdentityService
 {
-    public async Task<UserEntry?> GetUserByIdAsync(Guid id)
-    {
-        return await context.Set<UserEntry>().FindAsync(id);
-    }
+    public async Task<UserEntry?> GetUserByIdAsync(Guid id) => await userService.GetUserByIdAsync(id);
 
-    public async Task<List<UserEntry>> GetUsersByIdsAsync(List<Guid> ids)
-    {
-        return await context.Set<UserEntry>()
-            .Where(u => ids.Contains(u.Id))
-            .ToListAsync();
-    }
+    public async Task<List<UserEntry>> GetUsersByIdsAsync(List<Guid> ids) => await userService.GetUsersByIdsAsync(ids);
 
-    public async Task<UserEntry?> GetUserByGitHubIdAsync(string githubId)
-    {
-        return await context.Set<UserEntry>().FirstOrDefaultAsync(u => u.GitHubID == githubId);
-    }
+    public async Task<UserEntry?> GetUserByGitHubIdAsync(string githubId) => await userService.GetUserByGitHubIdAsync(githubId);
 
     public async Task<UserEntry> CreateUserAsync(string githubId, string githubUsername, string? githubAvatarUrl)
-    {
-        var user = new UserEntry
-        {
-            Id = Guid.NewGuid(),
-            GitHubID = githubId,
-            GitHubUsername = githubUsername,
-            GitHubAvatarUrl = githubAvatarUrl
-        };
-
-        context.Set<UserEntry>().Add(user);
-        await context.SaveChangesAsync();
-
-        return user;
-    }
+        => await userService.CreateUserAsync(githubId, githubUsername, githubAvatarUrl);
 
     public async Task<UserEntry> UpdateUserAsync(Guid id, string githubUsername, string? githubAvatarUrl)
-    {
-        var user = await context.Set<UserEntry>().FindAsync(id)
-            ?? throw new Exception("User not found");
-
-        user.GitHubUsername = githubUsername;
-        user.GitHubAvatarUrl = githubAvatarUrl;
-
-        context.Set<UserEntry>().Update(user);
-        await context.SaveChangesAsync();
-
-        return user;
-    }
+        => await userService.UpdateUserAsync(id, githubUsername, githubAvatarUrl);
 
     public async Task<List<UserEntry>> GetUsersAsync(string? query = null)
     {
@@ -69,29 +27,16 @@ public class IdentityService(
         {
             try
             {
-                var client = httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
-                client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
-
-                var response = await client.GetAsync($"https://api.github.com/search/users?q={query}");
-                if (response.IsSuccessStatusCode)
+                var githubUsers = await githubClient.SearchUsersAsync(query);
+                if (githubUsers.Count > 0)
                 {
-                    var content = await response.Content.ReadFromJsonAsync<GitHubSearchResponse>();
-                    if (content?.Items != null)
+                    var tasks = githubUsers.Select(async item =>
                     {
-                        var tasks = content.Items.Select(async item =>
-                        {
-                            var dbUser = await GetUserByGitHubIdAsync(item.Id.ToString());
-                            if (dbUser == null)
-                            {
-                                dbUser = await CreateUserAsync(item.Id.ToString(), item.Login, item.AvatarUrl);
-                            }
-                            return dbUser;
-                        });
+                        return await userService.EnsureUserAsync(item.Id.ToString(), item.Login, item.AvatarUrl);
+                    });
 
-                        var ensuredUsers = await Task.WhenAll(tasks);
-                        return ensuredUsers.ToList();
-                    }
+                    var ensuredUsers = await Task.WhenAll(tasks);
+                    return ensuredUsers.ToList();
                 }
             }
             catch (Exception ex)
@@ -100,75 +45,43 @@ public class IdentityService(
             }
         }
 
-        var dbQuery = context.Set<UserEntry>().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            dbQuery = dbQuery.Where(u => u.GitHubUsername.ToLower().Contains(query.ToLower()));
-        }
-        return await dbQuery.ToListAsync();
+        // Fallback or just query local DB if no query or if it failed.
+        // Re-using the logic from original:
+        // var dbQuery = context.Set<UserEntry>().AsQueryable();
+        // if (!string.IsNullOrWhiteSpace(query)) { ... }
+        // return await dbQuery.ToListAsync();
+
+        // But we need a way to do this in UserService or directly.
+        // Let's add a SearchLocalUsersAsync to IUserService.
+        return await SearchLocalUsersAsync(query);
+    }
+
+    private async Task<List<UserEntry>> SearchLocalUsersAsync(string? query)
+    {
+        // I'll add this to UserService instead for better separation.
+        // For now, I'll just call it on userService if I add it there.
+        return await userService.GetUsersByQueryAsync(query);
     }
 
     public async Task<(UserEntry User, string Token)> ExchangeAsync(string githubId, string username, string? avatarUrl)
     {
-        var user = await GetUserByGitHubIdAsync(githubId);
+        var user = await userService.GetUserByGitHubIdAsync(githubId);
 
         if (user == null)
         {
-            user = await CreateUserAsync(githubId, username, avatarUrl);
+            user = await userService.CreateUserAsync(githubId, username, avatarUrl);
         }
         else
         {
-            user = await UpdateUserAsync(user.Id, username, avatarUrl);
+            user = await userService.UpdateUserAsync(user.Id, username, avatarUrl);
         }
 
-        var token = IssueJwt(user.Id, user.GitHubUsername);
+        var token = tokenService.IssueJwt(user.Id, user.GitHubUsername);
         return (user, token);
     }
 
     public async Task<UserEntry> EnsureUserAsync(string githubId, string username, string? avatarUrl)
     {
-        var user = await GetUserByGitHubIdAsync(githubId);
-        if (user == null)
-        {
-            user = await CreateUserAsync(githubId, username, avatarUrl);
-        }
-        return user;
+        return await userService.EnsureUserAsync(githubId, username, avatarUrl);
     }
-
-    private string IssueJwt(Guid userId, string username)
-    {
-        var key = Encoding.UTF8.GetBytes(
-            configuration["Jwt:Key"] ?? "super_secret_key_that_is_long_enough_for_hmacsha256");
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Name, username)
-            ]),
-            Expires = DateTime.UtcNow.AddDays(7),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
-}
-
-internal class GitHubSearchResponse
-{
-    public List<GitHubUserItem> Items { get; set; } = [];
-}
-
-internal class GitHubUserItem
-{
-    public long Id { get; set; }
-    public string Login { get; set; } = string.Empty;
-    [System.Text.Json.Serialization.JsonPropertyName("avatar_url")]
-    public string? AvatarUrl { get; set; }
 }
