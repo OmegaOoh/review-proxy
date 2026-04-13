@@ -1,0 +1,23 @@
+name: Designite Analysis
+
+on:
+push:
+  branches: [main]
+pull_request:
+  branches: [main]
+workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: DesigniteAction
+        uses: DesigniteTools/designite_action@v1.4.0
+        with:
+          PAT: ${{ secrets.PAT }}
+          PROJECT_ID: ${{ secrets.DC_PROJECT_ID }}
+          API_KEY: ${{ secrets.DC_API_KEY }}
+          FOLDER_PATH: "."

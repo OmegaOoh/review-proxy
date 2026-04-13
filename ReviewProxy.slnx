@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/gateway/gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/services/">
+    <Project Path="src/services/identity/identity.csproj" />
+    <Project Path="src/services/issue/issue.csproj" />
+    <Project Path="src/services/repository/repository.csproj" />
+    <Project Path="src/services/syncing/syncing.csproj" />
+  </Folder>
+  <Folder Name="/src/shared/">
+    <Project Path="src/shared/ReviewProxy.Contracts/ReviewProxy.Contracts.csproj" />
+  </Folder>
+</Solution>
