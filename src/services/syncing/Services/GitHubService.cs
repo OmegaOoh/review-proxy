@@ -12,6 +12,10 @@ public class GitHubService(
     IIdentityClient identityClient,
     IGitHubInstallationService installationService) : IGitHubService
 {
+    private const int DefaultPageSize = 100;
+    private const int StartPage = 1;
+    private const int ExpectedRepoIdParts = 2;
+
     public async Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken)
     {
         var github = clientFactory.CreateGitHubClient(accessToken);
@@ -43,14 +47,19 @@ public class GitHubService(
 
     private async Task FetchDirectUserReposAsync(GitHubClient github, List<Repository> allRepos)
     {
-        int page = 1, perPage = 100;
+        int page = StartPage;
         while (true)
         {
-            var response = await github.User.Repos.GetAsync(p => { p.QueryParameters.Page = page; p.QueryParameters.PerPage = perPage; });
+            var response = await github.User.Repos.GetAsync(p =>
+            {
+                p.QueryParameters.Page = page;
+                p.QueryParameters.PerPage = DefaultPageSize;
+            });
+
             if (response == null || !response.Any()) break;
 
             allRepos.AddRange(response);
-            if (response.Count < perPage) break;
+            if (response.Count < DefaultPageSize) break;
             page++;
         }
     }
@@ -62,7 +71,9 @@ public class GitHubService(
         var instClient = clientFactory.CreateGitHubClient(token);
 
         var repoParts = approvalEvent.GitHubRepoId.Split('/');
-        if (repoParts.Length < 2) throw new InvalidOperationException($"Invalid GitHubRepoId: {approvalEvent.GitHubRepoId}");
+        if (repoParts.Length < ExpectedRepoIdParts)
+            throw new InvalidOperationException($"Invalid GitHubRepoId: {approvalEvent.GitHubRepoId}");
+
         var repoOwner = repoParts[0];
         var repoName = repoParts[1];
 
@@ -81,11 +92,16 @@ public class GitHubService(
             Approved at: {approvalEvent.UtcTime:yyyy-MM-dd HH:mm:ss} UTC</sub>
             """;
 
-        await instClient.Repos[repoOwner][repoName].Issues.PostAsync(new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
+        var issueRequest = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody
         {
-            Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title { String = approvalEvent.Title },
+            Title = new GitHub.Repos.Item.Item.Issues.IssuesPostRequestBody.IssuesPostRequestBody_title
+            {
+                String = approvalEvent.Title
+            },
             Body = issueBody
-        });
+        };
+
+        await instClient.Repos[repoOwner][repoName].Issues.PostAsync(issueRequest);
     }
 
     public Task<object> GetSyncContextAsync() => installationService.GetSyncContextAsync();

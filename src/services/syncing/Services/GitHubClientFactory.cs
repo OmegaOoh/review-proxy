@@ -10,6 +10,9 @@ namespace Syncing.Services;
 
 public class GitHubClientFactory(IHttpClientFactory httpClientFactory, ILogger<GitHubClientFactory> logger) : IGitHubClientFactory
 {
+    private const int JwtClockSkewSeconds = -60;
+    private const int JwtExpirationMinutes = 9;
+
     public GitHubClient CreateGitHubClient(string token)
     {
         var httpClient = httpClientFactory.CreateClient("github");
@@ -29,8 +32,8 @@ public class GitHubClientFactory(IHttpClientFactory httpClientFactory, ILogger<G
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = appId,
-            IssuedAt = now.AddSeconds(-60).UtcDateTime,
-            Expires = now.AddMinutes(9).UtcDateTime,
+            IssuedAt = now.AddSeconds(JwtClockSkewSeconds).UtcDateTime,
+            Expires = now.AddMinutes(JwtExpirationMinutes).UtcDateTime,
             SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
         };
 
