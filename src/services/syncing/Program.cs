@@ -40,6 +40,7 @@ builder.Services.AddHttpClient("github", client =>
 
 builder.Services.AddScoped<IGitHubClientFactory, GitHubClientFactory>();
 builder.Services.AddScoped<IIdentityClient, IdentityClient>();
+builder.Services.AddScoped<IGitHubInstallationService, GitHubInstallationService>();
 builder.Services.AddScoped<IGitHubService, GitHubService>();
 builder.Services.AddScoped<ISyncingService, SyncingService>();
 
