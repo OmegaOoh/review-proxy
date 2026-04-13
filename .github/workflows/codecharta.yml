@@ -1,0 +1,50 @@
+name: CodeCharta Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Install CodeCharta
+        run: npm install -g codecharta-analysis
+
+      - name: Run CodeCharta Analysis
+        run: |
+          mkdir -p output
+
+          echo "Running Unified Parser..."
+          ccsh unifiedparser . -o output/unified.cc.json --verbose
+
+          echo "Running Git Log Parser..."
+          ccsh gitlogparser . -o output/git.cc.json
+
+          echo "Merging Results..."
+          ccsh merge output/unified.cc.json output/git.cc.json -o output/review-proxy.cc.json
+
+      - name: Upload CodeCharta Metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: codecharta-metrics
+          path: output/review-proxy.cc.json
