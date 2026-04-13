@@ -38,6 +38,8 @@ builder.Services.AddHttpClient("github", client =>
     client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
 });
 
+builder.Services.AddScoped<IGitHubClientFactory, GitHubClientFactory>();
+builder.Services.AddScoped<IIdentityClient, IdentityClient>();
 builder.Services.AddScoped<IGitHubService, GitHubService>();
 builder.Services.AddScoped<ISyncingService, SyncingService>();
 

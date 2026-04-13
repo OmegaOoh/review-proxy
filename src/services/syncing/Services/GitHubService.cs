@@ -1,29 +1,20 @@
-using System.Security.Cryptography;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
-using Microsoft.IdentityModel.Tokens;
 using GitHub;
-using GitHub.Octokit.Client;
-using GitHub.Octokit.Client.Authentication;
 using GitHub.Models;
 using ReviewProxy.Contracts;
 using Syncing.Interfaces;
+using Syncing.Models;
 
 namespace Syncing.Services;
 
-public class GitHubService(IConfiguration configuration, ILogger<GitHubService> logger, IHttpClientFactory httpClientFactory) : IGitHubService
+public class GitHubService(
+    IConfiguration configuration,
+    ILogger<GitHubService> logger,
+    IGitHubClientFactory clientFactory,
+    IIdentityClient identityClient) : IGitHubService
 {
-    private GitHubClient CreateGitHubClient(string token)
-    {
-        var httpClient = httpClientFactory.CreateClient("github");
-        var tokenProvider = new TokenProvider(token);
-        var adapter = RequestAdapter.Create(new TokenAuthProvider(tokenProvider), httpClient);
-        return new GitHubClient(adapter);
-    }
-
     public async Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken)
     {
-        var github = CreateGitHubClient(accessToken);
+        var github = clientFactory.CreateGitHubClient(accessToken);
         var allRepos = new List<Repository>();
         var installedRepoIds = new HashSet<long>();
 
@@ -100,8 +91,8 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         var keyPath = configuration["GitHub:PrivateKeyPath"] ?? throw new InvalidOperationException("KeyPath not set");
         logger.LogInformation("Syncing to GitHub: {Repo}, AppId: {AppId}", approvalEvent.GitHubRepoId, appId);
 
-        var jwt = GenerateGitHubJwt(appId, await File.ReadAllTextAsync(keyPath));
-        var github = CreateGitHubClient(jwt);
+        var jwt = clientFactory.GenerateGitHubJwt(appId, await File.ReadAllTextAsync(keyPath));
+        var github = clientFactory.CreateGitHubClient(jwt);
 
         var owner = approvalEvent.GitHubRepoId.Split('/')[0];
         var installations = await github.App.Installations.GetAsync();
@@ -114,19 +105,15 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         var tokenResponse = await github.App.Installations[(int)inst.Id.Value].Access_tokens.PostAsync(new GitHub.App.Installations.Item.Access_tokens.Access_tokensPostRequestBody());
         if (string.IsNullOrEmpty(tokenResponse?.Token)) throw new InvalidOperationException("Token creation failed");
 
-        var instClient = CreateGitHubClient(tokenResponse.Token);
+        var instClient = clientFactory.CreateGitHubClient(tokenResponse.Token);
         var repoParts = approvalEvent.GitHubRepoId.Split('/');
         if (repoParts.Length < 2) throw new InvalidOperationException($"Invalid GitHubRepoId: {approvalEvent.GitHubRepoId}");
         var repoOwner = repoParts[0];
         var repoName = repoParts[1];
 
-        // Fetch user details from Identity Service
-        // Both IssueOwner and ApproverId are stored as internal Guids in their respective services
-        var creator = await GetGitHubUserByIdAsync(approvalEvent.IssueOwner);
-        var approver = await GetGitHubUserByIdAsync(approvalEvent.ApproverId.ToString());
+        var creator = await identityClient.GetGitHubUserByIdAsync(approvalEvent.IssueOwner);
 
         var creatorMention = creator != null ? $"@{creator.GitHubUsername}" : "Unknown User";
-        var approverGitHubId = approver?.GitHubID ?? "N/A";
 
         var issueBody = $"""
             {approvalEvent.Body}
@@ -147,36 +134,6 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
         });
     }
 
-    private async Task<GitHubUser?> GetGitHubUserByIdAsync(string userId)
-    {
-        try
-        {
-            var client = httpClientFactory.CreateClient("identity");
-            return await client.GetFromJsonAsync<GitHubUser>($"/api/identities/{userId}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to fetch user {UserId} by internal ID from identity service", userId);
-            return null;
-        }
-    }
-
-    private async Task<GitHubUser?> GetGitHubUserByGitHubIdAsync(string githubId)
-    {
-        try
-        {
-            var client = httpClientFactory.CreateClient("identity");
-            return await client.GetFromJsonAsync<GitHubUser>($"/api/identities/github/{githubId}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to fetch user {GitHubId} by GitHub ID from identity service", githubId);
-            return null;
-        }
-    }
-
-    private record GitHubUser(string GitHubUsername, string GitHubID);
-
     public async Task<object> GetSyncContextAsync()
     {
         var appSlug = configuration["GitHub:AppSlug"] ?? "review-proxy";
@@ -185,24 +142,5 @@ public class GitHubService(IConfiguration configuration, ILogger<GitHubService> 
             app_slug = appSlug,
             installation_url = $"https://github.com/apps/{appSlug}/installations/new"
         };
-    }
-
-    private string GenerateGitHubJwt(string appId, string privateKeyPem)
-    {
-        using var rsa = RSA.Create();
-        try { rsa.ImportFromPem(privateKeyPem.Replace("\\n", "\n").Trim().ToCharArray()); }
-        catch (Exception ex) { logger.LogError(ex, "RSA import failed. Check PrivateKeyPath."); throw; }
-
-        var handler = new JwtSecurityTokenHandler();
-        var now = DateTimeOffset.UtcNow;
-        var descriptor = new SecurityTokenDescriptor
-        {
-            Issuer = appId,
-            IssuedAt = now.AddSeconds(-60).UtcDateTime,
-            Expires = now.AddMinutes(9).UtcDateTime,
-            SigningCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256)
-        };
-
-        return handler.WriteToken(handler.CreateToken(descriptor));
     }
 }
