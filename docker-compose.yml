@@ -88,8 +88,12 @@ services:
     restart: always
     build:
       context: ./src/frontend
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
+    depends_on:
+      - gateway
 
   # ----------Database----------
   identity-db:

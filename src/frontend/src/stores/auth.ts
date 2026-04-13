@@ -71,14 +71,16 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
   function signIn() {
-    window.location.href = `/api/sync/signin?returnUrl=${encodeURIComponent(window.location.href)}`;
+    window.location.href = `${API_BASE_URL}/api/sync/signin?returnUrl=${encodeURIComponent(window.location.href)}`;
   }
 
   function signOut() {
     localStorage.removeItem("token");
     localStorage.removeItem("github_token");
-    window.location.href = `/api/sync/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
+    window.location.href = `${API_BASE_URL}/api/sync/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
   }
 
   return {
