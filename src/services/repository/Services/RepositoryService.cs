@@ -1,11 +1,13 @@
-using Microsoft.EntityFrameworkCore;
 using Repository.Data;
 using Repository.Interfaces;
 using Repository.Models;
 
 namespace Repository.Services;
 
-public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpClientFactory, IRepositoryEventPublisher eventPublisher) : IRepositoryService
+public class RepositoryService(
+    RepoDbContext dbContext,
+    IRepositoryEventPublisher eventPublisher,
+    IGitHubRepositoryService githubService) : IRepositoryService
 {
     public async Task<bool> DeleteRepositoryAsync(Guid repoId, string ownerId)
     {
@@ -23,44 +25,7 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
 
     public async Task<Guid> DepositAsync(string githubRepoId, string ownerId, string description, string githubToken, List<Guid> auditors)
     {
-        if (string.IsNullOrWhiteSpace(githubRepoId))
-        {
-            throw new ArgumentException("GitHub Repository ID is required.");
-        }
-
-        var client = httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Add("User-Agent", "ReviewProxy");
-        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2026-03-10");
-
-        if (!string.IsNullOrWhiteSpace(githubToken))
-        {
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
-        }
-
-        var response = await client.GetAsync($"https://api.github.com/repos/{githubRepoId}");
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException("Invalid or inaccessible GitHub repository.");
-        }
-
-        var json = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-        var fullName = json.GetProperty("full_name").GetString() ?? githubRepoId;
-
-        if (json.TryGetProperty("permissions", out var permissions))
-        {
-            var admin = permissions.TryGetProperty("admin", out var a) && a.GetBoolean();
-            var push = permissions.TryGetProperty("push", out var p) && p.GetBoolean();
-
-            if (!admin && !push)
-            {
-                throw new ArgumentException("You must have admin or push access to the repository on GitHub.");
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(githubToken))
-        {
-            // If authenticated but permissions not returned, GitHub likely doesn't see us as having access
-            throw new ArgumentException("Unable to verify repository permissions with GitHub.");
-        }
+        var (fullName, _) = await githubService.ValidateRepositoryAsync(githubRepoId, githubToken);
 
         var entry = new RepositoryEntry
         {
@@ -77,30 +42,6 @@ public class RepositoryService(RepoDbContext dbContext, IHttpClientFactory httpC
         await dbContext.SaveChangesAsync();
         await eventPublisher.PublishAuditorListAsync(entry.Id);
         return entry.Id;
-    }
-
-    public async Task<List<RepositoryEntry>> GetRepositoriesAsync(Guid? ownerId = null, RepositoryRole? role = null)
-    {
-        var query = dbContext.Repositories.AsQueryable();
-
-        if (ownerId.HasValue)
-        {
-            var ownerIdStr = ownerId.Value.ToString();
-
-            if (role.HasValue)
-            {
-                if (role.Value == RepositoryRole.Owner)
-                    query = query.Where(r => r.OwnerId == ownerIdStr);
-                else if (role.Value == RepositoryRole.Auditor)
-                    query = query.Where(r => r.AuditorsIds.Contains(ownerIdStr));
-            }
-            else
-            {
-                query = query.Where(r => r.OwnerId == ownerIdStr || r.AuditorsIds.Contains(ownerIdStr));
-            }
-        }
-
-        return await query.ToListAsync();
     }
 
     public async Task UpdateRepositoryAsync(Guid repoId, string description)
