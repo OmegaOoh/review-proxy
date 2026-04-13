@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -38,6 +38,12 @@ jobs:
             -fe "cs,ts,vue" \
             -e ".*(node_modules|dist|bin|obj).*" \
             --verbose
+
+          # CodeCharta may automatically compress the output
+          if [ -f output/review-proxy.cc.json.gz ]; then
+            echo "Decompressing output file..."
+            gunzip -f output/review-proxy.cc.json.gz
+          fi
 
       - name: Upload CodeCharta Metrics
         uses: actions/upload-artifact@v4
