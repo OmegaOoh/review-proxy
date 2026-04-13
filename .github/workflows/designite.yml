@@ -1,11 +1,11 @@
 name: Designite Analysis
 
 on:
-push:
-  branches: [main]
-pull_request:
-  branches: [main]
-workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: DesigniteAction
-        uses: DesigniteTools/designite_action@v1.4.0
+        uses: DesigniteTools/designite_action@v1.6.0
         with:
           PAT: ${{ secrets.PAT }}
           PROJECT_ID: ${{ secrets.DC_PROJECT_ID }}
