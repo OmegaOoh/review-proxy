@@ -4,9 +4,10 @@ import type {
   Issue,
   CreateIssueRequest,
   UpdateIssueRequest,
-  User,
+  IssueStatus,
 } from "../types";
-import { api } from "../api/client";
+import { IssueService } from "../api/issues";
+import { IdentityService } from "../api/identities";
 
 export const useIssueStore = defineStore("issues", () => {
   const issues = ref<Issue[]>([]);
@@ -17,7 +18,7 @@ export const useIssueStore = defineStore("issues", () => {
     loading.value = true;
     error.value = null;
     try {
-      const allIssues = await api.get<Issue[]>("/api/issues");
+      const allIssues = await IssueService.fetchAll();
       issues.value = allIssues.filter((i) => i.repositoryId === repoId);
       await enrichIssues();
     } catch (err: any) {
@@ -29,29 +30,19 @@ export const useIssueStore = defineStore("issues", () => {
   }
 
   async function enrichIssues() {
-    const userCache = new Map<string, User>();
-    const fetchUserDetails = async (id: string) => {
-      if (userCache.has(id)) return userCache.get(id);
-      try {
-        const user = await api.get<User>(`/api/identities/${id}`);
-        userCache.set(id, user);
-        return user;
-      } catch {
-        return null;
-      }
-    };
-
-    const promises = issues.value.map(async (issue) => {
-      issue.owner = (await fetchUserDetails(issue.ownerId)) || undefined;
-    });
-    await Promise.all(promises);
+    await Promise.all(
+      issues.value.map(async (issue) => {
+        const owner = await IdentityService.getUser(issue.ownerId);
+        issue.owner = owner || undefined;
+      }),
+    );
   }
 
   async function createIssue(request: CreateIssueRequest) {
     try {
-      const newIssue = await api.post<Issue>("/api/issues", request);
-      issues.value.push(newIssue);
-      await enrichIssues();
+      const newIssue = await IssueService.create(request);
+      // Re-fetch to ensure proper ordering and server-side enrichment/defaults
+      await fetchIssuesForRepository(request.repositoryId);
       return newIssue;
     } catch (err: any) {
       error.value = err.message;
@@ -61,10 +52,9 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function updateIssue(id: string, request: UpdateIssueRequest) {
     try {
-      const updatedIssue = await api.put<Issue>(`/api/issues/${id}`, request);
-      const index = issues.value.findIndex((i) => i.id === id);
-      if (index !== -1) issues.value[index] = updatedIssue;
-      await enrichIssues();
+      const updatedIssue = await IssueService.update(id, request);
+      const repoId = updatedIssue.repositoryId;
+      await fetchIssuesForRepository(repoId);
       return updatedIssue;
     } catch (err: any) {
       error.value = err.message;
@@ -74,8 +64,14 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function deleteIssue(id: string) {
     try {
-      await api.delete(`/api/issues/${id}`);
-      issues.value = issues.value.filter((i) => i.id !== id);
+      const issue = issues.value.find((i) => i.id === id);
+      const repoId = issue?.repositoryId;
+      await IssueService.delete(id);
+      if (repoId) {
+        await fetchIssuesForRepository(repoId);
+      } else {
+        issues.value = issues.value.filter((i) => i.id !== id);
+      }
     } catch (err: any) {
       error.value = err.message;
       throw err;
@@ -84,9 +80,8 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function approveIssue(id: string) {
     try {
-      await api.post(`/api/issues/${id}/approve`);
-      const issue = issues.value.find((i) => i.id === id);
-      if (issue) issue.status = "Approved" as any; // Cast as any because of enum string mismatch if any
+      await IssueService.approve(id);
+      updateLocalStatus(id, "Approved" as IssueStatus);
     } catch (err: any) {
       error.value = err.message;
       throw err;
@@ -95,13 +90,17 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function rejectIssue(id: string) {
     try {
-      await api.post(`/api/issues/${id}/reject`);
-      const issue = issues.value.find((i) => i.id === id);
-      if (issue) issue.status = "Rejected" as any;
+      await IssueService.reject(id);
+      updateLocalStatus(id, "Rejected" as IssueStatus);
     } catch (err: any) {
       error.value = err.message;
       throw err;
     }
+  }
+
+  function updateLocalStatus(id: string, status: IssueStatus) {
+    const issue = issues.value.find((i) => i.id === id);
+    if (issue) issue.status = status;
   }
 
   return {

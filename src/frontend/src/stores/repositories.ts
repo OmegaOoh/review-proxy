@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { Repository, User, DepositRequest } from "../types";
-import { api } from "../api/client";
+import type { Repository, DepositRequest } from "../types";
+import { RepositoryService } from "../api/repositories";
+import { IdentityService } from "../api/identities";
 
 export const useRepoStore = defineStore("repositories", () => {
   const repositories = ref<Repository[]>([]);
@@ -12,9 +13,7 @@ export const useRepoStore = defineStore("repositories", () => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await api.get<Repository[]>("/api/repositories");
-      repositories.value = data;
-      // Fetch owner and auditor details
+      repositories.value = await RepositoryService.fetchAll();
       await enrichRepositories();
     } catch (err: any) {
       console.error("Failed to fetch repositories", err);
@@ -25,59 +24,25 @@ export const useRepoStore = defineStore("repositories", () => {
   }
 
   async function enrichRepositories() {
-    const userCache = new Map<string, User>();
-
-    const fetchUserDetails = async (id: string) => {
-      if (userCache.has(id)) return userCache.get(id);
-      try {
-        const user = await api.get<User>(`/api/identities/${id}`);
-        userCache.set(id, user);
-        return user;
-      } catch {
-        return null;
-      }
-    };
-
-    const promises = repositories.value.map(async (repo) => {
-      // Fetch Owner
-      repo.owner = (await fetchUserDetails(repo.ownerId)) || undefined;
-
-      // Fetch Auditors
-      try {
-        // Try detailed endpoint first
-        const auditors = await api.get<User[]>(
-          `/api/repositories/${repo.id}/auditors/details`,
-        );
-        repo.auditors = auditors.filter((a) => a.id !== repo.ownerId);
-        // Pre-warm cache with these auditors
-        auditors.forEach((a) => userCache.set(a.id, a));
-      } catch (err) {
-        // Fallback: fetch IDs then details
-        try {
-          const auditorIds = await api.get<string[]>(
-            `/api/repositories/${repo.id}/auditors`,
-          );
-          const filteredIds = auditorIds.filter((id) => id !== repo.ownerId);
-          const auditorPromises = filteredIds.map((id) => fetchUserDetails(id));
-          const results = await Promise.all(auditorPromises);
-          repo.auditors = results.filter((u): u is User => !!u);
-        } catch (fallbackErr) {
-          console.error(
-            `Failed to fetch auditors for repo ${repo.id}`,
-            fallbackErr,
-          );
-          repo.auditors = [];
-        }
-      }
-    });
-    await Promise.all(promises);
+    // Only enrich repositories that don't have owner/auditors yet or refresh them
+    await Promise.all(
+      repositories.value.map(async (repo) => {
+        const [owner, auditors] = await Promise.all([
+          IdentityService.getUser(repo.ownerId),
+          RepositoryService.getAuditorsWithFallback(repo.id, repo.ownerId),
+        ]);
+        repo.owner = owner || undefined;
+        repo.auditors = auditors;
+      }),
+    );
   }
 
   async function depositRepository(request: DepositRequest) {
     loading.value = true;
     try {
-      const newRepo = await api.post<Repository>("/api/repositories", request);
-      repositories.value.push(newRepo);
+      const newRepo = await RepositoryService.deposit(request);
+      // Re-fetch everything to ensure we have the absolute latest state and proper ordering
+      await fetchAllRepositories();
       return newRepo;
     } catch (err: any) {
       error.value = err.message;
@@ -92,7 +57,7 @@ export const useRepoStore = defineStore("repositories", () => {
     description: string,
   ) {
     try {
-      await api.patch(`/api/repositories/${repoId}`, { description });
+      await RepositoryService.updateDescription(repoId, description);
       const repo = repositories.value.find((r) => r.id === repoId);
       if (repo) repo.description = description;
     } catch (err: any) {
@@ -103,17 +68,14 @@ export const useRepoStore = defineStore("repositories", () => {
 
   async function addAuditors(repoId: string, userIds: string[]) {
     try {
-      await api.post(`/api/repositories/${repoId}/auditors`, userIds);
-      // Refresh auditors for this repo
+      await RepositoryService.addAuditors(repoId, userIds);
       const repo = repositories.value.find((r) => r.id === repoId);
       if (repo) {
-        // Filter out owner just in case
-        const filteredIds = userIds.filter((id) => id !== repo.ownerId);
-        const detailsPromises = filteredIds.map((id) =>
-          api.get<User>(`/api/identities/${id}`),
+        const auditors = await RepositoryService.getAuditorsWithFallback(
+          repo.id,
+          repo.ownerId,
         );
-        const newAuditors = await Promise.all(detailsPromises);
-        repo.auditors = [...(repo.auditors || []), ...newAuditors];
+        repo.auditors = auditors;
       }
     } catch (err: any) {
       error.value = err.message;
@@ -123,7 +85,7 @@ export const useRepoStore = defineStore("repositories", () => {
 
   async function removeAuditor(repoId: string, userId: string) {
     try {
-      await api.delete(`/api/repositories/${repoId}/auditors`, [userId]);
+      await RepositoryService.removeAuditors(repoId, [userId]);
       const repo = repositories.value.find((r) => r.id === repoId);
       if (repo) {
         repo.auditors = repo.auditors?.filter((a) => a.id !== userId);
@@ -137,7 +99,7 @@ export const useRepoStore = defineStore("repositories", () => {
   async function deleteRepository(repoId: string) {
     loading.value = true;
     try {
-      await api.delete(`/api/repositories/${repoId}`);
+      await RepositoryService.delete(repoId);
       repositories.value = repositories.value.filter((r) => r.id !== repoId);
     } catch (err: any) {
       error.value = err.message;

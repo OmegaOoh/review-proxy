@@ -184,6 +184,7 @@ import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useRepoStore } from "../stores/repositories";
 import { useIssueStore } from "../stores/issues";
+import { useConfirm } from "primevue/useconfirm";
 import RepositoryIssues from "./RepositoryIssues.vue";
 import RepositoryAuditors from "./RepositoryAuditors.vue";
 import type { User } from "../types";
@@ -196,10 +197,12 @@ const route = useRoute();
 const router = useRouter();
 const repoStore = useRepoStore();
 const issueStore = useIssueStore();
+const confirm = useConfirm();
 const { repositories, loading, error } = storeToRefs(repoStore);
 const { issues } = storeToRefs(issueStore);
 
 const repoId = route.params.id as string;
+// ...
 const activeTab = ref("issues");
 const isEditingDescription = ref(false);
 const editDescriptionText = ref("");
@@ -230,18 +233,28 @@ const saveDescription = async () => {
 
 const handleOptOut = async () => {
     if (!repo.value) return;
-    if (
-        confirm(
-            `Are you sure you want to opt-out from ${repo.value.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
-        )
-    ) {
-        try {
-            await repoStore.deleteRepository(repo.value.id);
-            router.push("/");
-        } catch (err) {
-            console.error("Failed to opt-out", err);
-        }
-    }
+    confirm.require({
+        message: `Are you sure you want to opt-out from ${repo.value.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
+        header: "Opt-out Repository",
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: {
+            label: "Cancel",
+            severity: "secondary",
+            outlined: true,
+        },
+        acceptProps: {
+            label: "Opt-out",
+            severity: "danger",
+        },
+        accept: async () => {
+            try {
+                await repoStore.deleteRepository(repo.value!.id);
+                router.push("/");
+            } catch (err) {
+                console.error("Failed to opt-out", err);
+            }
+        },
+    });
 };
 
 const formatDate = (dateString: string) => {

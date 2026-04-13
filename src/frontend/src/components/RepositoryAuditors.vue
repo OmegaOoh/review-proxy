@@ -182,7 +182,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useRepoStore } from "../stores/repositories";
-import { api } from "../api/client";
+import { IdentityService } from "../api/identities";
+import { useConfirm } from "primevue/useconfirm";
 import type { Repository, User } from "../types";
 
 const props = defineProps<{
@@ -191,7 +192,9 @@ const props = defineProps<{
 }>();
 
 const repoStore = useRepoStore();
+const confirm = useConfirm();
 const userSearchQuery = ref("");
+// ...
 const searchResults = ref<User[]>([]);
 const isSearching = ref(false);
 const ownerDetails = ref<User | null>(null);
@@ -201,9 +204,7 @@ let searchTimeout: any = null;
 
 const fetchOwnerDetails = async () => {
     try {
-        ownerDetails.value = await api.get<User>(
-            `/api/identities/${props.repo.ownerId}`,
-        );
+        ownerDetails.value = await IdentityService.getUser(props.repo.ownerId);
     } catch (err) {
         console.error("Failed to fetch owner details", err);
     }
@@ -216,9 +217,7 @@ const handleSearchUsers = async (query: string) => {
     }
     isSearching.value = true;
     try {
-        const users = await api.get<User[]>(
-            `/api/identities?query=${encodeURIComponent(query)}`,
-        );
+        const users = await IdentityService.searchUsers(query);
         // Filter out existing auditors and owner
         searchResults.value = users.filter(
             (u) =>
@@ -250,12 +249,27 @@ const handleAddAuditor = async (user: User) => {
 };
 
 const handleRemoveAuditor = async (userId: string) => {
-    if (!confirm("Are you sure you want to remove this auditor?")) return;
-    try {
-        await repoStore.removeAuditor(props.repo.id, userId);
-    } catch (err) {
-        console.error("Failed to remove auditor", err);
-    }
+    confirm.require({
+        message: "Are you sure you want to remove this auditor?",
+        header: "Remove Auditor",
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: {
+            label: "Cancel",
+            severity: "secondary",
+            outlined: true,
+        },
+        acceptProps: {
+            label: "Remove",
+            severity: "danger",
+        },
+        accept: async () => {
+            try {
+                await repoStore.removeAuditor(props.repo.id, userId);
+            } catch (err) {
+                console.error("Failed to remove auditor", err);
+            }
+        },
+    });
 };
 
 onMounted(() => {

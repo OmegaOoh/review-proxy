@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { User } from "../types";
-import { api } from "../api/client";
+import { AuthService } from "../api/auth";
+import { IdentityService } from "../api/identities";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
@@ -16,23 +17,9 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       let token = localStorage.getItem("token");
 
-      // Sync with session cookie if no token in local storage
       if (!token) {
-        try {
-          const syncData = await api.get<{
-            token: string;
-            github_token?: string;
-          }>("/api/sync/me");
-          if (syncData.token) {
-            token = syncData.token;
-            localStorage.setItem("token", syncData.token);
-            if (syncData.github_token) {
-              localStorage.setItem("github_token", syncData.github_token);
-            }
-          }
-        } catch (err) {
-          console.warn("Authentication session sync failed", err);
-        }
+        const syncData = await AuthService.syncSession();
+        token = syncData?.token || null;
       }
 
       if (!token) {
@@ -41,22 +28,15 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       try {
-        user.value = await api.get<User>("/api/identities/me");
+        user.value = await IdentityService.getMe();
       } catch (err: any) {
         // Potential auto-recovery for expired or stale tokens
         if (err.message.includes("401") || err.message.includes("Not Found")) {
           localStorage.removeItem("token");
           localStorage.removeItem("github_token");
-          const syncData = await api.get<{
-            token: string;
-            github_token?: string;
-          }>("/api/sync/me");
-          if (syncData.token) {
-            localStorage.setItem("token", syncData.token);
-            if (syncData.github_token) {
-              localStorage.setItem("github_token", syncData.github_token);
-            }
-            user.value = await api.get<User>("/api/identities/me");
+          const syncData = await AuthService.syncSession();
+          if (syncData?.token) {
+            user.value = await IdentityService.getMe();
             return;
           }
         }
@@ -72,13 +52,11 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   function signIn() {
-    window.location.href = `/api/sync/signin?returnUrl=${encodeURIComponent(window.location.href)}`;
+    AuthService.signIn();
   }
 
   function signOut() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("github_token");
-    window.location.href = `/api/sync/signout?returnUrl=${encodeURIComponent(window.location.href)}`;
+    AuthService.signOut();
   }
 
   return {
