@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -33,15 +31,13 @@ jobs:
       - name: Run CodeCharta Analysis
         run: |
           mkdir -p output
-
-          echo "Running Unified Parser..."
-          ccsh unifiedparser . -o output/unified.cc.json --verbose
-
-          echo "Running Git Log Parser..."
-          ccsh gitlogparser . -o output/git.cc.json
-
-          echo "Merging Results..."
-          ccsh merge output/unified.cc.json output/git.cc.json -o output/review-proxy.cc.json
+          echo "Running Code Scanning for C# and TypeScript/Vue files..."
+          # Analyze C#, TS, and Vue files, explicitly excluding build and dependency folders.
+          ccsh unifiedparser src \
+            -o output/review-proxy.cc.json \
+            -fe "cs,ts,vue" \
+            -e ".*(node_modules|dist|bin|obj).*" \
+            --verbose
 
       - name: Upload CodeCharta Metrics
         uses: actions/upload-artifact@v4
