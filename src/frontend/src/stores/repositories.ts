@@ -24,6 +24,7 @@ export const useRepoStore = defineStore("repositories", () => {
   }
 
   async function enrichRepositories() {
+    // Only enrich repositories that don't have owner/auditors yet or refresh them
     await Promise.all(
       repositories.value.map(async (repo) => {
         const [owner, auditors] = await Promise.all([
@@ -40,8 +41,8 @@ export const useRepoStore = defineStore("repositories", () => {
     loading.value = true;
     try {
       const newRepo = await RepositoryService.deposit(request);
-      repositories.value.push(newRepo);
-      await enrichRepositories(); // Ensure new repo is enriched
+      // Re-fetch everything to ensure we have the absolute latest state and proper ordering
+      await fetchAllRepositories();
       return newRepo;
     } catch (err: any) {
       error.value = err.message;

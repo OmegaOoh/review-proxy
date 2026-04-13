@@ -41,8 +41,8 @@ export const useIssueStore = defineStore("issues", () => {
   async function createIssue(request: CreateIssueRequest) {
     try {
       const newIssue = await IssueService.create(request);
-      issues.value.push(newIssue);
-      await enrichIssues();
+      // Re-fetch to ensure proper ordering and server-side enrichment/defaults
+      await fetchIssuesForRepository(request.repositoryId);
       return newIssue;
     } catch (err: any) {
       error.value = err.message;
@@ -53,9 +53,8 @@ export const useIssueStore = defineStore("issues", () => {
   async function updateIssue(id: string, request: UpdateIssueRequest) {
     try {
       const updatedIssue = await IssueService.update(id, request);
-      const index = issues.value.findIndex((i) => i.id === id);
-      if (index !== -1) issues.value[index] = updatedIssue;
-      await enrichIssues();
+      const repoId = updatedIssue.repositoryId;
+      await fetchIssuesForRepository(repoId);
       return updatedIssue;
     } catch (err: any) {
       error.value = err.message;
@@ -65,8 +64,14 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function deleteIssue(id: string) {
     try {
+      const issue = issues.value.find((i) => i.id === id);
+      const repoId = issue?.repositoryId;
       await IssueService.delete(id);
-      issues.value = issues.value.filter((i) => i.id !== id);
+      if (repoId) {
+        await fetchIssuesForRepository(repoId);
+      } else {
+        issues.value = issues.value.filter((i) => i.id !== id);
+      }
     } catch (err: any) {
       error.value = err.message;
       throw err;
