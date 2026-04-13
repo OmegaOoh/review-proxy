@@ -11,9 +11,6 @@ jobs:
   analyze:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: DesigniteAction
         uses: DesigniteTools/designite_action@v1.6.0
         with:
