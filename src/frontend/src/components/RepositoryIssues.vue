@@ -86,6 +86,8 @@
 import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useIssueStore } from "../stores/issues";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 import { IssueStatus, type Repository, type User, type Issue } from "../types";
 import IssueListItem from "./IssueListItem.vue";
 import IssueViewModal from "./IssueViewModal.vue";
@@ -97,6 +99,8 @@ const props = defineProps<{
 }>();
 
 const issueStore = useIssueStore();
+const confirm = useConfirm();
+const toast = useToast();
 const { issues, loading, error } = storeToRefs(issueStore);
 
 const showCreateModal = ref(false);
@@ -154,20 +158,58 @@ const handleSaveIssue = async (form: {
             });
         }
         closeModals();
+        toast.add({
+            severity: "success",
+            summary: "Success",
+            detail: "Issue saved successfully",
+            life: 3000,
+        });
     } catch (err) {
         console.error("Failed to save issue", err);
-        alert("Failed to save issue. Please try again.");
+        toast.add({
+            severity: "error",
+            summary: "Error",
+            detail: "Failed to save issue. Please try again.",
+            life: 5000,
+        });
     } finally {
         saving.value = false;
     }
 };
 
 const handleDeleteIssue = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this issue?")) return;
-    try {
-        await issueStore.deleteIssue(id);
-    } catch (err) {
-        console.error("Failed to delete issue", err);
-    }
+    confirm.require({
+        message: "Are you sure you want to delete this issue?",
+        header: "Delete Issue",
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: {
+            label: "Cancel",
+            severity: "secondary",
+            outlined: true,
+        },
+        acceptProps: {
+            label: "Delete",
+            severity: "danger",
+        },
+        accept: async () => {
+            try {
+                await issueStore.deleteIssue(id);
+                toast.add({
+                    severity: "success",
+                    summary: "Success",
+                    detail: "Issue deleted successfully",
+                    life: 3000,
+                });
+            } catch (err) {
+                console.error("Failed to delete issue", err);
+                toast.add({
+                    severity: "error",
+                    summary: "Error",
+                    detail: "Failed to delete issue",
+                    life: 5000,
+                });
+            }
+        },
+    });
 };
 </script>

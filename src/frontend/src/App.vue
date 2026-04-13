@@ -4,11 +4,15 @@ import { storeToRefs } from "pinia";
 import { useAuthStore } from "./stores/auth";
 import UserProfile from "./components/UserProfile.vue";
 import Login from "./components/Login.vue";
+import Toast from "primevue/toast";
+import ConfirmDialog from "primevue/confirmdialog";
 
 const authStore = useAuthStore();
+// ...
 const { user, isAuthenticated, loading } = storeToRefs(authStore);
 
 // Dark mode state
+// ...
 const dark = ref(
     typeof document !== "undefined" &&
         document.documentElement.classList.contains("dark"),
@@ -34,6 +38,9 @@ onMounted(() => {
     <div
         class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200"
     >
+        <Toast />
+        <ConfirmDialog />
+
         <!-- Topbar -->
         <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40">
             <div

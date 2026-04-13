@@ -183,6 +183,7 @@
 import { ref, onMounted, watch } from "vue";
 import { useRepoStore } from "../stores/repositories";
 import { IdentityService } from "../api/identities";
+import { useConfirm } from "primevue/useconfirm";
 import type { Repository, User } from "../types";
 
 const props = defineProps<{
@@ -191,7 +192,9 @@ const props = defineProps<{
 }>();
 
 const repoStore = useRepoStore();
+const confirm = useConfirm();
 const userSearchQuery = ref("");
+// ...
 const searchResults = ref<User[]>([]);
 const isSearching = ref(false);
 const ownerDetails = ref<User | null>(null);
@@ -246,12 +249,27 @@ const handleAddAuditor = async (user: User) => {
 };
 
 const handleRemoveAuditor = async (userId: string) => {
-    if (!confirm("Are you sure you want to remove this auditor?")) return;
-    try {
-        await repoStore.removeAuditor(props.repo.id, userId);
-    } catch (err) {
-        console.error("Failed to remove auditor", err);
-    }
+    confirm.require({
+        message: "Are you sure you want to remove this auditor?",
+        header: "Remove Auditor",
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: {
+            label: "Cancel",
+            severity: "secondary",
+            outlined: true,
+        },
+        acceptProps: {
+            label: "Remove",
+            severity: "danger",
+        },
+        accept: async () => {
+            try {
+                await repoStore.removeAuditor(props.repo.id, userId);
+            } catch (err) {
+                console.error("Failed to remove auditor", err);
+            }
+        },
+    });
 };
 
 onMounted(() => {

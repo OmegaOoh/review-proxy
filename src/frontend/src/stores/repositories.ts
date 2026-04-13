@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { Repository, User, DepositRequest } from "../types";
+import type { Repository, DepositRequest } from "../types";
 import { RepositoryService } from "../api/repositories";
 import { IdentityService } from "../api/identities";
 

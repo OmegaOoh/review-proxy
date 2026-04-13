@@ -2,6 +2,8 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import Aura from "@primevue/themes/aura";
+import ConfirmationService from "primevue/confirmationservice";
+import ToastService from "primevue/toastservice";
 
 import "primeicons/primeicons.css";
 import "./style.css";
@@ -13,6 +15,7 @@ const app = createApp(App);
 const pinia = createPinia();
 
 // Theme Initialization
+// ... (rest of theme logic)
 const initTheme = () => {
   try {
     const prefersDark = window.matchMedia(
@@ -43,5 +46,7 @@ app.use(PrimeVue, {
     },
   },
 });
+app.use(ConfirmationService);
+app.use(ToastService);
 
 app.mount("#app");

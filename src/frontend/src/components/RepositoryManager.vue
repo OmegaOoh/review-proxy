@@ -125,15 +125,6 @@
             @close="showDepositModal = false"
             @deposited="onRepoDeposited"
         />
-
-        <CreateIssueModal
-            v-if="selectedRepoForIssue"
-            :repo="selectedRepoForIssue"
-            :user="props.user"
-            :show="showCreateIssueModal"
-            @close="closeCreateIssueModal"
-            @created="onIssueCreated"
-        />
     </div>
 </template>
 
@@ -142,12 +133,13 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useRepoStore } from "../stores/repositories";
+import { useConfirm } from "primevue/useconfirm";
 import DepositRepositoryModal from "./DepositRepositoryModal.vue";
-import CreateIssueModal from "./CreateIssueModal.vue";
 import type { User, Repository } from "../types";
 
 const router = useRouter();
 const repoStore = useRepoStore();
+const confirm = useConfirm();
 const { repositories, loading, error } = storeToRefs(repoStore);
 
 const props = defineProps<{
@@ -159,41 +151,33 @@ const myRepositories = computed(() =>
 );
 
 const showDepositModal = ref(false);
-const showCreateIssueModal = ref(false);
-const selectedRepoForIssue = ref<Repository | null>(null);
 
-const onRepoDeposited = (newRepo: Repository) => {
+const onRepoDeposited = () => {
     showDepositModal.value = false;
-    // repository is already added to store in handleDeposit inside the modal if it uses the store
-    // but the modal I wrote uses RepositoryService directly to avoid store bloat inside modal?
-    // Wait, let's make sure the store is updated.
-    // In my new DepositRepositoryModal, I called RepositoryService.deposit directly.
-    // I should probably call repoStore.depositRepository instead to keep it reactive.
-    // Let me fix DepositRepositoryModal to use repoStore.
 };
 
 const handleOptOut = async (repo: Repository) => {
-    if (
-        confirm(
-            `Are you sure you want to opt-out from ${repo.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
-        )
-    ) {
-        try {
-            await repoStore.deleteRepository(repo.id);
-        } catch (err) {
-            console.error("Failed to opt-out", err);
-        }
-    }
-};
-
-const closeCreateIssueModal = () => {
-    showCreateIssueModal.value = false;
-    selectedRepoForIssue.value = null;
-};
-
-const onIssueCreated = () => {
-    closeCreateIssueModal();
-    router.push(`/repository/${selectedRepoForIssue.value?.id}`);
+    confirm.require({
+        message: `Are you sure you want to opt-out from ${repo.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
+        header: "Opt-out Repository",
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: {
+            label: "Cancel",
+            severity: "secondary",
+            outlined: true,
+        },
+        acceptProps: {
+            label: "Opt-out",
+            severity: "danger",
+        },
+        accept: async () => {
+            try {
+                await repoStore.deleteRepository(repo.id);
+            } catch (err) {
+                console.error("Failed to opt-out", err);
+            }
+        },
+    });
 };
 
 onMounted(() => {
