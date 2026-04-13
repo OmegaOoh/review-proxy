@@ -134,6 +134,19 @@ export const useRepoStore = defineStore("repositories", () => {
     }
   }
 
+  async function deleteRepository(repoId: string) {
+    loading.value = true;
+    try {
+      await api.delete(`/api/repositories/${repoId}`);
+      repositories.value = repositories.value.filter((r) => r.id !== repoId);
+    } catch (err: any) {
+      error.value = err.message;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     repositories,
     loading,
@@ -143,5 +156,6 @@ export const useRepoStore = defineStore("repositories", () => {
     updateRepositoryDescription,
     addAuditors,
     removeAuditor,
+    deleteRepository,
   };
 });

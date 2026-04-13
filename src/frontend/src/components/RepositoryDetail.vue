@@ -18,13 +18,24 @@
 
         <div v-else-if="repo">
             <div class="mb-8">
-                <button
-                    @click="router.back()"
-                    class="mb-6 px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
-                >
-                    <i class="pi pi-arrow-left"></i>
-                    Back
-                </button>
+                <div class="flex justify-between items-start mb-6">
+                    <button
+                        @click="router.back()"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
+                    >
+                        <i class="pi pi-arrow-left"></i>
+                        Back
+                    </button>
+
+                    <button
+                        v-if="repo.ownerId === props.user.id"
+                        @click="handleOptOut"
+                        class="px-4 py-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2 text-sm font-bold"
+                    >
+                        <i class="pi pi-sign-out"></i>
+                        Opt-out
+                    </button>
+                </div>
 
                 <div
                     class="flex flex-col md:flex-row md:items-end justify-between gap-4"
@@ -214,6 +225,22 @@ const saveDescription = async () => {
         isEditingDescription.value = false;
     } catch (err) {
         console.error("Failed to update description", err);
+    }
+};
+
+const handleOptOut = async () => {
+    if (!repo.value) return;
+    if (
+        confirm(
+            `Are you sure you want to opt-out from ${repo.value.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
+        )
+    ) {
+        try {
+            await repoStore.deleteRepository(repo.value.id);
+            router.push("/");
+        } catch (err) {
+            console.error("Failed to opt-out", err);
+        }
     }
 };
 

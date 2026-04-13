@@ -104,16 +104,16 @@
                     class="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700/50 flex flex-wrap gap-2"
                 >
                     <button
-                        @click="openCreateIssueModal(repo)"
-                        class="flex-1 px-3 py-2 text-xs font-bold bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-xl hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <i class="pi pi-plus"></i> Issue
-                    </button>
-                    <button
                         @click="router.push(`/repository/${repo.id}`)"
                         class="flex-1 px-3 py-2 text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
                     >
-                        <i class="pi pi-cog"></i> Config
+                        <i class="pi pi-cog"></i> Config / Detail
+                    </button>
+                    <button
+                        @click="handleOptOut(repo)"
+                        class="flex-1 px-3 py-2 text-xs font-bold bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <i class="pi pi-sign-out"></i> Opt-out
                     </button>
                 </div>
             </div>
@@ -643,6 +643,20 @@ const handleDeposit = async () => {
         console.error("Deposit failed", err);
     } finally {
         depositing.value = false;
+    }
+};
+
+const handleOptOut = async (repo: Repository) => {
+    if (
+        confirm(
+            `Are you sure you want to opt-out from ${repo.gitHubRepoId}? This will remove all Review Proxy configuration for this repository.`,
+        )
+    ) {
+        try {
+            await repoStore.deleteRepository(repo.id);
+        } catch (err) {
+            console.error("Failed to opt-out", err);
+        }
     }
 };
 
