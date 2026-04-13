@@ -30,6 +30,34 @@ export const RepositoryService = {
     return api.delete(`/api/repositories/${repoId}/auditors`, userIds);
   },
 
+  async getAuditorsWithFallback(
+    repoId: string,
+    ownerId: string,
+  ): Promise<User[]> {
+    try {
+      // Try detailed endpoint first
+      const auditors = await this.getAuditorsDetails(repoId);
+      return auditors.filter((a) => a.id !== ownerId);
+    } catch (err) {
+      try {
+        // Fallback: fetch IDs then details
+        const auditorIds = await this.getAuditors(repoId);
+        const filteredIds = auditorIds.filter((id) => id !== ownerId);
+        const { IdentityService } = await import("./identities");
+        const results = await Promise.all(
+          filteredIds.map((id) => IdentityService.getUser(id)),
+        );
+        return results.filter((u): u is User => !!u);
+      } catch (fallbackErr) {
+        console.error(
+          `Failed to fetch auditors for repo ${repoId}`,
+          fallbackErr,
+        );
+        return [];
+      }
+    }
+  },
+
   async delete(repoId: string): Promise<void> {
     return api.delete(`/api/repositories/${repoId}`);
   },

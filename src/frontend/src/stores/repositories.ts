@@ -24,33 +24,16 @@ export const useRepoStore = defineStore("repositories", () => {
   }
 
   async function enrichRepositories() {
-    const promises = repositories.value.map(async (repo) => {
-      // Fetch Owner
-      repo.owner = (await IdentityService.getUser(repo.ownerId)) || undefined;
-
-      // Fetch Auditors
-      try {
-        const auditors = await RepositoryService.getAuditorsDetails(repo.id);
-        repo.auditors = auditors.filter((a) => a.id !== repo.ownerId);
-        auditors.forEach((a) => IdentityService.cacheUser(a));
-      } catch (err) {
-        try {
-          const auditorIds = await RepositoryService.getAuditors(repo.id);
-          const filteredIds = auditorIds.filter((id) => id !== repo.ownerId);
-          const results = await Promise.all(
-            filteredIds.map((id) => IdentityService.getUser(id)),
-          );
-          repo.auditors = results.filter((u): u is User => !!u);
-        } catch (fallbackErr) {
-          console.error(
-            `Failed to fetch auditors for repo ${repo.id}`,
-            fallbackErr,
-          );
-          repo.auditors = [];
-        }
-      }
-    });
-    await Promise.all(promises);
+    await Promise.all(
+      repositories.value.map(async (repo) => {
+        const [owner, auditors] = await Promise.all([
+          IdentityService.getUser(repo.ownerId),
+          RepositoryService.getAuditorsWithFallback(repo.id, repo.ownerId),
+        ]);
+        repo.owner = owner || undefined;
+        repo.auditors = auditors;
+      }),
+    );
   }
 
   async function depositRepository(request: DepositRequest) {
@@ -58,6 +41,7 @@ export const useRepoStore = defineStore("repositories", () => {
     try {
       const newRepo = await RepositoryService.deposit(request);
       repositories.value.push(newRepo);
+      await enrichRepositories(); // Ensure new repo is enriched
       return newRepo;
     } catch (err: any) {
       error.value = err.message;
@@ -86,12 +70,11 @@ export const useRepoStore = defineStore("repositories", () => {
       await RepositoryService.addAuditors(repoId, userIds);
       const repo = repositories.value.find((r) => r.id === repoId);
       if (repo) {
-        const filteredIds = userIds.filter((id) => id !== repo.ownerId);
-        const newAuditors = await Promise.all(
-          filteredIds.map((id) => IdentityService.getUser(id)),
+        const auditors = await RepositoryService.getAuditorsWithFallback(
+          repo.id,
+          repo.ownerId,
         );
-        const validNewAuditors = newAuditors.filter((u): u is User => !!u);
-        repo.auditors = [...(repo.auditors || []), ...validNewAuditors];
+        repo.auditors = auditors;
       }
     } catch (err: any) {
       error.value = err.message;

@@ -1,6 +1,11 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { Issue, CreateIssueRequest, UpdateIssueRequest } from "../types";
+import type {
+  Issue,
+  CreateIssueRequest,
+  UpdateIssueRequest,
+  IssueStatus,
+} from "../types";
 import { IssueService } from "../api/issues";
 import { IdentityService } from "../api/identities";
 
@@ -25,10 +30,12 @@ export const useIssueStore = defineStore("issues", () => {
   }
 
   async function enrichIssues() {
-    const promises = issues.value.map(async (issue) => {
-      issue.owner = (await IdentityService.getUser(issue.ownerId)) || undefined;
-    });
-    await Promise.all(promises);
+    await Promise.all(
+      issues.value.map(async (issue) => {
+        const owner = await IdentityService.getUser(issue.ownerId);
+        issue.owner = owner || undefined;
+      }),
+    );
   }
 
   async function createIssue(request: CreateIssueRequest) {
@@ -69,8 +76,7 @@ export const useIssueStore = defineStore("issues", () => {
   async function approveIssue(id: string) {
     try {
       await IssueService.approve(id);
-      const issue = issues.value.find((i) => i.id === id);
-      if (issue) issue.status = "Approved" as any;
+      updateLocalStatus(id, "Approved" as IssueStatus);
     } catch (err: any) {
       error.value = err.message;
       throw err;
@@ -80,12 +86,16 @@ export const useIssueStore = defineStore("issues", () => {
   async function rejectIssue(id: string) {
     try {
       await IssueService.reject(id);
-      const issue = issues.value.find((i) => i.id === id);
-      if (issue) issue.status = "Rejected" as any;
+      updateLocalStatus(id, "Rejected" as IssueStatus);
     } catch (err: any) {
       error.value = err.message;
       throw err;
     }
+  }
+
+  function updateLocalStatus(id: string, status: IssueStatus) {
+    const issue = issues.value.find((i) => i.id === id);
+    if (issue) issue.status = status;
   }
 
   return {
