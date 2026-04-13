@@ -4,7 +4,8 @@
  */
 
 // Use an absolute URL for the API Gateway
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 async function request<T>(
   endpoint: string,
@@ -23,7 +24,11 @@ async function request<T>(
     ? endpoint
     : `${API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include", // Ensure session cookies are sent for CORS
+  });
 
   if (!response.ok) {
     if (response.status === 401) {

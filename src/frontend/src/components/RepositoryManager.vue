@@ -497,7 +497,8 @@ import { ref, onMounted, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useRepoStore } from "../stores/repositories";
-import { api } from "../api/client";
+import { RepositoryService } from "../api/repositories";
+import { IdentityService } from "../api/identities";
 import CreateIssueModal from "./CreateIssueModal.vue";
 import type { User, Repository } from "../types";
 
@@ -565,7 +566,7 @@ const selectedRepoForIssue = ref<Repository | null>(null);
 const fetchSyncContext = async () => {
     if (syncContext.value) return;
     try {
-        syncContext.value = await api.get<any>("/api/sync/context");
+        syncContext.value = await RepositoryService.getSyncContext();
     } catch (err) {
         console.error("Failed to fetch sync context", err);
     }
@@ -575,9 +576,8 @@ const fetchGithubRepos = async (force = false) => {
     if (!force && githubRepositories.value.length > 0) return;
     loadingGithubRepos.value = true;
     try {
-        githubRepositories.value = await api.get<any[]>(
-            "/api/sync/repositories",
-        );
+        githubRepositories.value =
+            await RepositoryService.getSyncRepositories();
     } catch (err) {
         console.error("Failed to fetch GitHub repos", err);
     } finally {
@@ -592,9 +592,7 @@ const handleSearchUsers = async (query: string) => {
     }
     isSearching.value = true;
     try {
-        const users = await api.get<User[]>(
-            `/api/identities?query=${encodeURIComponent(query)}`,
-        );
+        const users = await IdentityService.searchUsers(query);
         searchResults.value = users.filter((u) => u.id !== props.user.id);
     } catch (err) {
         console.error("User search failed", err);

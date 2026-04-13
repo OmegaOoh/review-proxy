@@ -182,7 +182,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useRepoStore } from "../stores/repositories";
-import { api } from "../api/client";
+import { IdentityService } from "../api/identities";
 import type { Repository, User } from "../types";
 
 const props = defineProps<{
@@ -201,9 +201,7 @@ let searchTimeout: any = null;
 
 const fetchOwnerDetails = async () => {
     try {
-        ownerDetails.value = await api.get<User>(
-            `/api/identities/${props.repo.ownerId}`,
-        );
+        ownerDetails.value = await IdentityService.getUser(props.repo.ownerId);
     } catch (err) {
         console.error("Failed to fetch owner details", err);
     }
@@ -216,9 +214,7 @@ const handleSearchUsers = async (query: string) => {
     }
     isSearching.value = true;
     try {
-        const users = await api.get<User[]>(
-            `/api/identities?query=${encodeURIComponent(query)}`,
-        );
+        const users = await IdentityService.searchUsers(query);
         // Filter out existing auditors and owner
         searchResults.value = users.filter(
             (u) =>

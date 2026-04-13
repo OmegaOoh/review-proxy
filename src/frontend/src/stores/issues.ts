@@ -1,12 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type {
-  Issue,
-  CreateIssueRequest,
-  UpdateIssueRequest,
-  User,
-} from "../types";
-import { api } from "../api/client";
+import type { Issue, CreateIssueRequest, UpdateIssueRequest } from "../types";
+import { IssueService } from "../api/issues";
+import { IdentityService } from "../api/identities";
 
 export const useIssueStore = defineStore("issues", () => {
   const issues = ref<Issue[]>([]);
@@ -17,7 +13,7 @@ export const useIssueStore = defineStore("issues", () => {
     loading.value = true;
     error.value = null;
     try {
-      const allIssues = await api.get<Issue[]>("/api/issues");
+      const allIssues = await IssueService.fetchAll();
       issues.value = allIssues.filter((i) => i.repositoryId === repoId);
       await enrichIssues();
     } catch (err: any) {
@@ -29,27 +25,15 @@ export const useIssueStore = defineStore("issues", () => {
   }
 
   async function enrichIssues() {
-    const userCache = new Map<string, User>();
-    const fetchUserDetails = async (id: string) => {
-      if (userCache.has(id)) return userCache.get(id);
-      try {
-        const user = await api.get<User>(`/api/identities/${id}`);
-        userCache.set(id, user);
-        return user;
-      } catch {
-        return null;
-      }
-    };
-
     const promises = issues.value.map(async (issue) => {
-      issue.owner = (await fetchUserDetails(issue.ownerId)) || undefined;
+      issue.owner = (await IdentityService.getUser(issue.ownerId)) || undefined;
     });
     await Promise.all(promises);
   }
 
   async function createIssue(request: CreateIssueRequest) {
     try {
-      const newIssue = await api.post<Issue>("/api/issues", request);
+      const newIssue = await IssueService.create(request);
       issues.value.push(newIssue);
       await enrichIssues();
       return newIssue;
@@ -61,7 +45,7 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function updateIssue(id: string, request: UpdateIssueRequest) {
     try {
-      const updatedIssue = await api.put<Issue>(`/api/issues/${id}`, request);
+      const updatedIssue = await IssueService.update(id, request);
       const index = issues.value.findIndex((i) => i.id === id);
       if (index !== -1) issues.value[index] = updatedIssue;
       await enrichIssues();
@@ -74,7 +58,7 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function deleteIssue(id: string) {
     try {
-      await api.delete(`/api/issues/${id}`);
+      await IssueService.delete(id);
       issues.value = issues.value.filter((i) => i.id !== id);
     } catch (err: any) {
       error.value = err.message;
@@ -84,9 +68,9 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function approveIssue(id: string) {
     try {
-      await api.post(`/api/issues/${id}/approve`);
+      await IssueService.approve(id);
       const issue = issues.value.find((i) => i.id === id);
-      if (issue) issue.status = "Approved" as any; // Cast as any because of enum string mismatch if any
+      if (issue) issue.status = "Approved" as any;
     } catch (err: any) {
       error.value = err.message;
       throw err;
@@ -95,7 +79,7 @@ export const useIssueStore = defineStore("issues", () => {
 
   async function rejectIssue(id: string) {
     try {
-      await api.post(`/api/issues/${id}/reject`);
+      await IssueService.reject(id);
       const issue = issues.value.find((i) => i.id === id);
       if (issue) issue.status = "Rejected" as any;
     } catch (err: any) {
