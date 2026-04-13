@@ -1,0 +1,52 @@
+name: CodeCharta Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Install CodeCharta
+        run: npm install -g codecharta-analysis
+
+      - name: Run CodeCharta Analysis
+        run: |
+          mkdir -p output
+          echo "Running Code Scanning for C# and TypeScript/Vue files..."
+          # Analyze C#, TS, and Vue files, explicitly excluding build and dependency folders.
+          ccsh unifiedparser src \
+            -o output/review-proxy.cc.json \
+            -fe "cs,ts,vue" \
+            -e ".*(node_modules|dist|bin|obj).*" \
+            --verbose
+
+          # CodeCharta may automatically compress the output
+          if [ -f output/review-proxy.cc.json.gz ]; then
+            echo "Decompressing output file..."
+            gunzip -f output/review-proxy.cc.json.gz
+          fi
+
+      - name: Upload CodeCharta Metrics
+        uses: actions/upload-artifact@v7
+        with:
+          name: codecharta-metrics
+          path: output/review-proxy.cc.json
