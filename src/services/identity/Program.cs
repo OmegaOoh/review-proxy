@@ -68,6 +68,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHealthChecks("/health");
-app.MapIdentityEndpoints();
+app.MapAuthEndpoints();
+app.MapUserEndpoints();
 
 app.Run();
