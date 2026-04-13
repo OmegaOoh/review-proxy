@@ -18,6 +18,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
+    options.ForwardLimit = null; // Trust all proxies in the chain (Vite -> Gateway -> Syncing)
 });
 
 // Named HTTP client for service-to-service calls to IdentityService.
@@ -91,6 +92,18 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Handle PublicUrl override if set to fix Redirect URI issues
+var publicUrl = app.Configuration["Services:PublicUrl"];
+if (!string.IsNullOrWhiteSpace(publicUrl) && Uri.TryCreate(publicUrl, UriKind.Absolute, out var uri))
+{
+    app.Use((context, next) =>
+    {
+        context.Request.Host = new HostString(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80));
+        context.Request.Scheme = uri.Scheme;
+        return next();
+    });
+}
 
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "compose")
 {

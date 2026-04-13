@@ -18,4 +18,6 @@ RUN dotnet publish "syncing.csproj" -c Release -o /app/publish /p:UseAppHost=fal
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+ENV ASPNETCORE_HTTP_PORTS=8000
+EXPOSE 8000
 ENTRYPOINT ["dotnet", "syncing.dll"]

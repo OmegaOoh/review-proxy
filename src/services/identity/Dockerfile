@@ -11,6 +11,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build-env /app/out .
 
-EXPOSE 80
+ENV ASPNETCORE_HTTP_PORTS=8000
+EXPOSE 8000
 
 ENTRYPOINT ["dotnet", "identity.dll"]
