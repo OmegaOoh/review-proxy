@@ -71,13 +71,13 @@ public static class RepositoryEndpoints
             return Results.NoContent();
         });
 
-        group.MapGet("/{id}/auditors", async (IAuditorService service, Guid id) =>
+        group.MapGet("/{id}/auditors", async (IAuditorQueryService service, Guid id) =>
         {
             var auditors = await service.GetAuditorsAsync(id);
             return Results.Ok(auditors);
         });
 
-        group.MapGet("/{id}/auditors/details", async (IAuditorService service, Guid id, HttpContext httpContext) =>
+        group.MapGet("/{id}/auditors/details", async (IAuditorQueryService service, Guid id, HttpContext httpContext) =>
         {
             var authorizationHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
             var details = await service.GetAuditorsDetailsAsync(id, authorizationHeader);
