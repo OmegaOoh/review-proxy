@@ -30,6 +30,7 @@ public class IdentityClient(IHttpClientFactory httpClientFactory) : IIdentityCli
         catch
         {
             // Fallback to empty if batch fails
+            return [];
         }
 
         return [];
