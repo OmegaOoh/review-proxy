@@ -1,0 +1,11 @@
+using ReviewProxy.Contracts;
+
+namespace Syncing.Interfaces.Services;
+
+public interface ISyncingService
+{
+    Task<string> ExchangeGitHubUserAsync(string githubId, string username, string? avatarUrl, string? githubToken);
+    Task<IEnumerable<object>> GetUserRepositoriesAsync(string accessToken);
+    Task SyncIssueToGitHubAsync(IssueApprovalEvent approvalEvent);
+    Task<object> GetSyncContextAsync();
+}

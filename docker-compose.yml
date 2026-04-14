@@ -3,7 +3,7 @@ services:
   gateway:
     restart: always
     build:
-      context: ./src/gateway
+      context: ./src/Gateway
     entrypoint: ["dotnet", "gateway.dll"]
     ports:
       - "8000:8000"
@@ -19,7 +19,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: src/services/repository/Dockerfile
+      dockerfile: src/services/Repository/Dockerfile
     entrypoint: ["dotnet", "repository.dll"]
     ports:
       - "5247:8000"
@@ -48,7 +48,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: src/services/syncing/Dockerfile
+      dockerfile: src/services/Syncing/Dockerfile
     entrypoint: ["dotnet", "syncing.dll"]
     ports:
       - "5248:8000"
@@ -71,7 +71,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: src/services/issue/Dockerfile
+      dockerfile: src/services/Issue/Dockerfile
     entrypoint: ["dotnet", "issue.dll"]
     ports:
       - "5249:8000"
