@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Syncing.Interfaces;
 using Syncing.Services;
+using Syncing.Clients;
 
 namespace Syncing.Extensions;
 

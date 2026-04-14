@@ -1,7 +1,8 @@
+namespace Identity.Clients;
+
 using Identity.Interfaces;
 using System.Net.Http.Json;
 
-namespace Identity.Services;
 
 public class GitHubIdentityClient(IHttpClientFactory httpClientFactory) : IGitHubIdentityClient
 {

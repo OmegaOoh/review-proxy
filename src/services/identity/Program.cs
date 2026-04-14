@@ -2,6 +2,7 @@ using Identity.APIs;
 using Identity.Data;
 using Identity.Interfaces;
 using Identity.Services;
+using Identity.Clients;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;

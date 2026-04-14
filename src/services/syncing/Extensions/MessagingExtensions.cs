@@ -1,6 +1,6 @@
 using MassTransit;
 using ReviewProxy.Contracts;
-using Syncing.Services;
+using Syncing.Events.Consumers;
 
 namespace Syncing.Extensions;
 

@@ -2,7 +2,7 @@ using MassTransit;
 using ReviewProxy.Contracts;
 using Syncing.Interfaces;
 
-namespace Syncing.Services;
+namespace Syncing.Events.Consumers;
 
 public class IssueApprovalConsumer(ISyncingService syncingService, ILogger<IssueApprovalConsumer> logger) : IConsumer<IssueApprovalEvent>
 {

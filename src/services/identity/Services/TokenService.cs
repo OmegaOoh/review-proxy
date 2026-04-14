@@ -8,6 +8,8 @@ namespace Identity.Services;
 
 public class TokenService(IConfiguration configuration) : ITokenService
 {
+    private readonly int jwtExpirationDays = 7;
+
     public string IssueJwt(Guid userId, string username)
     {
         var key = Encoding.UTF8.GetBytes(
@@ -22,7 +24,7 @@ public class TokenService(IConfiguration configuration) : ITokenService
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Name, username)
             ]),
-            Expires = DateTime.UtcNow.AddDays(7),
+            Expires = DateTime.UtcNow.AddDays(jwtExpirationDays),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature)

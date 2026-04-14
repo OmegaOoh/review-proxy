@@ -3,7 +3,7 @@ using Repository.Data;
 using Repository.Interfaces;
 using ReviewProxy.Contracts;
 
-namespace Repository.Services;
+namespace Repository.Events.Producers;
 
 public class RepositoryEventPublisher(RepoDbContext dbContext, IPublishEndpoint publishEndpoint) : IRepositoryEventPublisher
 {

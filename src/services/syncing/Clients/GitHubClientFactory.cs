@@ -6,7 +6,7 @@ using GitHub.Octokit.Client;
 using GitHub.Octokit.Client.Authentication;
 using Syncing.Interfaces;
 
-namespace Syncing.Services;
+namespace Syncing.Clients;
 
 public class GitHubClientFactory(IHttpClientFactory httpClientFactory, ILogger<GitHubClientFactory> logger) : IGitHubClientFactory
 {

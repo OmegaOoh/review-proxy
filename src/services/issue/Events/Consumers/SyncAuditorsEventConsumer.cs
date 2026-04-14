@@ -1,4 +1,4 @@
-namespace Issue.Services;
+namespace Issue.Events.Consumers;
 
 using Issue.Data;
 using Issue.Models;

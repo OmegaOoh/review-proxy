@@ -6,6 +6,7 @@ using Issue.Interfaces;
 using Issue.APIs;
 using MassTransit;
 using ReviewProxy.Contracts;
+using Issue.Events.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 

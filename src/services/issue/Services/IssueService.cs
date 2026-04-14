@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Issue.Data;
 using Issue.Interfaces;
 using Issue.Models;
-using Issue.Models.Dtos;
 using MassTransit;
-using ReviewProxy.Contracts;
 
 namespace Issue.Services;
 

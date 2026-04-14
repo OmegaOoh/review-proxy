@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using Syncing.Interfaces;
 using Syncing.Models;
 
-namespace Syncing.Services;
+namespace Syncing.Clients;
 
 public class IdentityClient(IHttpClientFactory httpClientFactory, ILogger<IdentityClient> logger) : IIdentityClient
 {

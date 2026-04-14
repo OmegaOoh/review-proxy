@@ -1,9 +1,10 @@
+namespace Issue.Events.Consumers;
+
 using MassTransit;
 using ReviewProxy.Contracts;
 using Issue.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Issue.Services;
 
 public class RepositoryDeletedEventConsumer(IssueDbContext dbContext, ILogger<RepositoryDeletedEventConsumer> logger) : IConsumer<RepositoryDeletedEvent>
 {

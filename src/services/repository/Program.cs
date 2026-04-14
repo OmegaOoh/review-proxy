@@ -4,6 +4,7 @@ using Repository.Data;
 using Repository.Services;
 using Repository.Interfaces;
 using Repository.APIs;
+using Repository.Events.Producers;
 using MassTransit;
 using ReviewProxy.Contracts;
 
