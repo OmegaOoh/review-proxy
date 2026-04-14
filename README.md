@@ -28,6 +28,39 @@ The application follows a distributed microservices pattern:
 *   **Database**: PostgreSQL.
 *   **Package Management**: Bun for frontend dependencies and .NET CLI for backend.
 
+## System Screenshots
+
+### User Dashboard
+![Landing Page](figures/screenshots/home-so.png)
+
+*The landing page provides a high-level overview of all repositories currently registered in the system.*
+
+![My Repositories](figures/screenshots/my-repositories.png)
+
+*Users can easily manage their own projects and track their individual deposit statuses.*
+
+### Repository Configuration
+![Deposit Repository](figures/screenshots/deposit.png)
+
+*The deposit workflow allows owners to select projects from their GitHub account and assign initial auditors.*
+
+![Auditor Management](figures/screenshots/auditors.png)
+
+*Owners maintain full control over who is authorized to review issues within their projects.*
+
+### Audit & Issue Management
+![Issue Overview](figures/screenshots/issue-page.png)
+
+*A centralized view for tracking the progress of various audit issues across a repository.*
+
+![Issue Review](figures/screenshots/owner-auditor-issue.png)
+
+*Auditors are provided with a dedicated interface to approve or reject issues, driving the audit lifecycle.*
+
+![GitHub Sync](figures/screenshots/issue-github.png)
+
+*Review Proxy ensures that audit results are synchronized back to the original GitHub repository for transparent tracking.*
+
 ## GitHub Configuration
 
 Review Proxy uses a single GitHub App to handle both user authentication (OAuth) and repository interactions.
