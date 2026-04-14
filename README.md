@@ -31,7 +31,11 @@ The application follows a distributed microservices pattern:
 ## System Screenshots
 
 ### User Dashboard
-![Landing Page](figures/screenshots/home-so.png)
+![Landing Page -- (Signout)](figures/screenshots/home-so.png)
+
+*The application requires user to sign-in with their GitHub account.*
+
+![Landing Page -- (Sign in)](figures/screenshots/home-si.png)
 
 *The landing page provides a high-level overview of all repositories currently registered in the system.*
 
