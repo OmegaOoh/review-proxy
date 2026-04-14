@@ -9,7 +9,7 @@ const { user, isAuthenticated } = storeToRefs(authStore);
 <template>
     <div v-if="isAuthenticated && user" class="flex items-center group">
         <div
-            class="flex items-center space-x-3 bg-gray-50 dark:bg-gray-700/50 p-1 pr-3 rounded-full border border-gray-100 dark:border-gray-600 transition-all hover:border-blue-200 dark:hover:border-blue-900/50"
+            class="flex items-center space-x-3 bg-gray-100 dark:bg-gray-700/50 p-1 pr-3 rounded-full border border-gray-200 dark:border-gray-600 transition-all hover:border-blue-200 dark:hover:border-blue-900/50"
         >
             <img
                 :src="
@@ -26,7 +26,7 @@ const { user, isAuthenticated } = storeToRefs(authStore);
                     {{ user.gitHubUsername }}
                 </span>
                 <span
-                    class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter"
+                    class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tighter"
                 >
                     GitHub Profile
                 </span>

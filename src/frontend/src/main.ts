@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import Aura from "@primevue/themes/aura";
+import { definePreset } from "@primevue/themes";
 import ConfirmationService from "primevue/confirmationservice";
 import ToastService from "primevue/toastservice";
 
@@ -11,11 +12,7 @@ import "./style.css";
 import App from "./App.vue";
 import router from "./router";
 
-const app = createApp(App);
-const pinia = createPinia();
-
-// Theme Initialization
-// ... (rest of theme logic)
+// Theme Initialization (must happen before App instantiation to prevent flicker and sync issues)
 const initTheme = () => {
   try {
     const prefersDark = window.matchMedia(
@@ -36,11 +33,32 @@ const initTheme = () => {
 
 initTheme();
 
+const MyPreset = definePreset(Aura, {
+  semantic: {
+    primary: {
+      50: "#f5f9ff",
+      100: "#eaf3ff",
+      200: "#cfe6ff",
+      300: "#9fceff",
+      400: "#66b0ff",
+      500: "#2b8bff",
+      600: "#1f6fe6",
+      700: "#1754b4",
+      800: "#113a82",
+      900: "#0b2758",
+      950: "#06183a",
+    },
+  },
+});
+
+const app = createApp(App);
+const pinia = createPinia();
+
 app.use(pinia);
 app.use(router);
 app.use(PrimeVue, {
   theme: {
-    preset: Aura,
+    preset: MyPreset,
     options: {
       darkModeSelector: ".dark",
     },

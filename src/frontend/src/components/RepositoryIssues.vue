@@ -7,7 +7,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                     Issues
                 </h2>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-gray-600">
                     Track and review code changes.
                 </p>
             </div>
@@ -24,22 +24,24 @@
             class="flex flex-col items-center justify-center py-20"
         >
             <i class="pi pi-spin pi-spinner text-3xl text-blue-600 mb-4"></i>
-            <span class="text-gray-500">Loading issues...</span>
+            <span class="text-gray-600 dark:text-gray-400"
+                >Loading issues...</span
+            >
         </div>
 
         <div
             v-else-if="error"
-            class="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100"
+            class="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200"
         >
             {{ error }}
         </div>
 
         <div
             v-else-if="filteredIssues.length === 0"
-            class="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700"
+            class="text-center py-20 bg-gray-100 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700"
         >
             <i class="pi pi-file-edit text-4xl text-gray-300 mb-4"></i>
-            <p class="text-lg text-gray-500">
+            <p class="text-lg text-gray-600 dark:text-gray-400">
                 No issues found for this repository.
             </p>
             <button

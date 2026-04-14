@@ -5,7 +5,7 @@
             class="flex flex-col items-center justify-center py-20"
         >
             <i class="pi pi-spin pi-spinner text-4xl text-blue-600 mb-4"></i>
-            <span class="text-gray-500">Loading repository details...</span>
+            <span class="text-gray-600">Loading repository details...</span>
         </div>
 
         <div
@@ -51,13 +51,12 @@
                                 :href="`https://github.com/${repo.gitHubRepoId}`"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-gray-400 hover:text-blue-500 transition-colors"
+                                class="text-gray-500 hover:text-blue-500 transition-colors"
                                 title="View on GitHub"
                             >
                                 <i class="pi pi-github text-2xl"></i>
                             </a>
                         </div>
-
                         <div
                             v-if="isEditingDescription"
                             class="flex flex-col sm:flex-row gap-2 mt-4 max-w-2xl"
@@ -95,7 +94,7 @@
                             <button
                                 v-if="props.user.id === repo.ownerId"
                                 @click="startEditDescription"
-                                class="ml-3 p-1.5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-500 transition-all"
+                                class="ml-3 p-1.5 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-blue-500 transition-all"
                                 title="Edit Description"
                             >
                                 <i class="pi pi-pencil"></i>
@@ -104,10 +103,10 @@
                     </div>
 
                     <div
-                        class="flex items-center gap-4 text-sm font-medium text-gray-500 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"
+                        class="flex items-center gap-4 text-sm font-medium text-gray-600 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
                         <div
-                            class="flex items-center gap-2 px-3 border-r border-gray-100 dark:border-gray-700"
+                            class="flex items-center gap-2 px-3 border-r border-gray-200 dark:border-gray-700"
                         >
                             <img
                                 v-if="repo.owner"
@@ -115,7 +114,7 @@
                                     repo.owner.gitHubAvatarUrl ||
                                     `https://github.com/${repo.owner.gitHubUsername}.png`
                                 "
-                                class="w-5 h-5 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm"
+                                class="w-5 h-5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm"
                             />
                             <i v-else class="pi pi-user text-blue-500"></i>
                             <span>{{
@@ -140,7 +139,7 @@
                         :class="[
                             activeTab === tab
                                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
+                                : 'border-transparent text-gray-600 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
                             'whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm capitalize transition-all duration-200',
                         ]"
                     >
@@ -167,7 +166,7 @@
 
         <div v-else class="py-20 text-center">
             <i class="pi pi-search text-4xl text-gray-300 mb-4"></i>
-            <p class="text-xl text-gray-500">Repository not found.</p>
+            <p class="text-xl text-gray-600">Repository not found.</p>
             <button
                 @click="router.push('/')"
                 class="mt-4 text-blue-600 hover:underline"

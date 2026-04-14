@@ -26,7 +26,7 @@ const formatStatus = (status: IssueStatus) => {
 const getStatusClass = (status: IssueStatus) => {
     switch (status) {
         case IssueStatus.Draft:
-            return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+            return "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
         case IssueStatus.SubmitForReview:
             return "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400";
         case IssueStatus.Approved:
@@ -34,7 +34,7 @@ const getStatusClass = (status: IssueStatus) => {
         case IssueStatus.Rejected:
             return "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
         default:
-            return "bg-gray-100 text-gray-600";
+            return "bg-gray-200 text-gray-600";
     }
 };
 </script>
@@ -47,9 +47,11 @@ const getStatusClass = (status: IssueStatus) => {
             @click.self="emit('close')"
         >
             <div
-                class="bg-white dark:bg-gray-800 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700"
+                class="bg-white dark:bg-gray-800 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
             >
-                <div class="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
+                <div
+                    class="p-8 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start"
+                >
                     <div>
                         <div class="flex items-center gap-3 mb-4">
                             <span
@@ -58,31 +60,46 @@ const getStatusClass = (status: IssueStatus) => {
                             >
                                 {{ formatStatus(issue.status) }}
                             </span>
-                            <span class="text-sm text-gray-500">
-                                Created by {{ issue.owner?.gitHubUsername || issue.ownerId.substring(0, 8) }} on {{ formatDate(issue.createdAt) }}
+                            <span
+                                class="text-sm text-gray-600 dark:text-gray-400"
+                            >
+                                Created by
+                                {{
+                                    issue.owner?.gitHubUsername ||
+                                    issue.ownerId.substring(0, 8)
+                                }}
+                                on {{ formatDate(issue.createdAt) }}
                             </span>
                         </div>
-                        <h3 class="text-3xl font-extrabold text-gray-900 dark:text-white leading-tight">
+                        <h3
+                            class="text-3xl font-extrabold text-gray-900 dark:text-white leading-tight"
+                        >
                             {{ issue.title }}
                         </h3>
                     </div>
                     <button
                         @click="emit('close')"
-                        class="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+                        class="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
                     >
                         <i class="pi pi-times text-xl"></i>
                     </button>
                 </div>
 
-                <div class="flex-grow overflow-y-auto p-8 bg-gray-50/30 dark:bg-gray-900/10">
+                <div
+                    class="flex-grow overflow-y-auto p-8 bg-gray-100/30 dark:bg-gray-900/10"
+                >
                     <div class="prose dark:prose-invert max-w-none">
-                        <p class="text-lg text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                        <p
+                            class="text-lg text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed"
+                        >
                             {{ issue.body || "No description provided." }}
                         </p>
                     </div>
                 </div>
 
-                <div class="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <div
+                    class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end"
+                >
                     <button
                         @click="emit('close')"
                         class="px-8 py-3 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-2xl font-bold hover:opacity-90 transition-all"

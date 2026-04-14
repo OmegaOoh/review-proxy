@@ -6,7 +6,7 @@
             <div>
                 <button
                     @click="router.back()"
-                    class="mb-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
+                    class="mb-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
                 >
                     <i class="pi pi-arrow-left text-[10px]"></i>
                     Back
@@ -16,7 +16,7 @@
                 >
                     My Repositories
                 </h2>
-                <p class="text-gray-500">
+                <p class="text-gray-600 dark:text-gray-400">
                     Deposit and configure your GitHub repositories.
                 </p>
             </div>
@@ -31,7 +31,7 @@
 
         <div
             v-if="error"
-            class="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 flex items-center gap-3"
+            class="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 flex items-center gap-3"
         >
             <i class="pi pi-exclamation-circle text-xl"></i>
             {{ error }}
@@ -42,22 +42,24 @@
             class="flex flex-col items-center justify-center py-20"
         >
             <i class="pi pi-spin pi-spinner text-4xl text-blue-600 mb-4"></i>
-            <span class="text-gray-500">Loading your repositories...</span>
+            <span class="text-gray-600 dark:text-gray-400"
+                >Loading your repositories...</span
+            >
         </div>
 
         <div
             v-else-if="myRepositories.length === 0"
-            class="py-20 text-center bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"
+            class="py-20 text-center bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700"
         >
             <div
-                class="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4"
+                class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4"
             >
                 <i class="pi pi-folder-open text-4xl text-gray-300"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 No active deposits
             </h3>
-            <p class="text-gray-500 mb-8">
+            <p class="text-gray-600 dark:text-gray-400 mb-8">
                 You haven't deposited any repositories to Review Proxy yet.
             </p>
             <button
@@ -75,7 +77,7 @@
             <div
                 v-for="repo in myRepositories"
                 :key="repo.id"
-                class="group p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col hover:border-blue-200 dark:hover:border-blue-900/50 transition-all duration-300"
+                class="group p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col hover:border-blue-200 dark:hover:border-blue-900/50 transition-all duration-300"
             >
                 <div class="flex justify-between items-start mb-4">
                     <h3
@@ -87,7 +89,7 @@
                         :href="`https://github.com/${repo.gitHubRepoId}`"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+                        class="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
                         title="View on GitHub"
                     >
                         <i class="pi pi-github"></i>
@@ -101,7 +103,7 @@
                 </p>
 
                 <div
-                    class="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700/50 flex flex-wrap gap-2"
+                    class="mt-auto pt-6 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-2"
                 >
                     <button
                         @click="router.push(`/repository/${repo.id}`)"

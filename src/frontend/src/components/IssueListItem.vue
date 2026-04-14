@@ -46,7 +46,7 @@ const getStatusClass = (status: IssueStatus) => {
 
 <template>
     <div
-        class="group p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between gap-6"
+        class="group p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between gap-6"
     >
         <div class="flex-grow cursor-pointer" @click="emit('view', issue)">
             <div class="flex items-center gap-3 mb-3">
@@ -68,7 +68,7 @@ const getStatusClass = (status: IssueStatus) => {
                 {{ issue.body || "No description provided." }}
             </p>
             <div
-                class="flex items-center gap-6 text-[11px] font-bold text-gray-400 uppercase tracking-widest"
+                class="flex items-center gap-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest"
             >
                 <div class="flex items-center gap-1.5">
                     <img
@@ -77,7 +77,7 @@ const getStatusClass = (status: IssueStatus) => {
                             issue.owner.gitHubAvatarUrl ||
                             `https://github.com/${issue.owner.gitHubUsername}.png`
                         "
-                        class="w-4 h-4 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm"
+                        class="w-4 h-4 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm"
                     />
                     <i v-else class="pi pi-user text-[10px]"></i>
                     <span>{{

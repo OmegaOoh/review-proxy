@@ -6,7 +6,7 @@ const authStore = useAuthStore();
 
 <template>
     <div
-        class="mt-20 flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl shadow-blue-100/50 dark:shadow-none border border-gray-100 dark:border-gray-700 max-w-md mx-auto text-center"
+        class="mt-20 flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl shadow-blue-100/50 dark:shadow-none border border-gray-200 dark:border-gray-700 max-w-md mx-auto text-center"
     >
         <div
             class="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-8"
@@ -20,7 +20,7 @@ const authStore = useAuthStore();
             Welcome to Review Proxy
         </h2>
 
-        <p class="text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
+        <p class="text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
             A specialized proxy for managing and auditing repository issues.
             Please sign in with GitHub to continue.
         </p>
@@ -35,7 +35,7 @@ const authStore = useAuthStore();
             <span>Continue with GitHub</span>
         </button>
 
-        <p class="mt-8 text-xs text-gray-400 font-medium">
+        <p class="mt-8 text-xs text-gray-500 dark:text-gray-400 font-medium">
             By signing in, you agree to our Terms of Service.
         </p>
     </div>

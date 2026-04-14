@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Auditors
             </h2>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
                 Users authorized to review and approve issues in this
                 repository.
             </p>
@@ -16,7 +16,7 @@
 
         <div
             v-else-if="error"
-            class="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100"
+            class="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200"
         >
             {{ error }}
         </div>
@@ -28,18 +28,18 @@
                 class="relative mb-8"
             >
                 <label
-                    class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-3"
+                    class="block text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-3"
                     >Add New Auditor</label
                 >
                 <div class="relative">
                     <i
-                        class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                        class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
                     ></i>
                     <input
                         type="text"
                         v-model="userSearchQuery"
                         placeholder="Search by GitHub username..."
-                        class="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        class="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     />
                 </div>
 
@@ -50,11 +50,11 @@
                             userSearchQuery &&
                             (isSearching || searchResults.length > 0)
                         "
-                        class="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-100 dark:border-gray-700 max-h-64 overflow-auto p-2"
+                        class="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 max-h-64 overflow-auto p-2"
                     >
                         <div
                             v-if="isSearching"
-                            class="p-4 text-sm text-gray-500 text-center flex items-center justify-center gap-2"
+                            class="p-4 text-sm text-gray-600 dark:text-gray-400 text-center flex items-center justify-center gap-2"
                         >
                             <i class="pi pi-spin pi-spinner"></i>
                             Searching...
@@ -64,7 +64,7 @@
                                 v-for="user in searchResults"
                                 :key="user.id"
                                 @click="handleAddAuditor(user)"
-                                class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer rounded-xl flex items-center justify-between group transition-colors"
+                                class="p-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer rounded-xl flex items-center justify-between group transition-colors"
                             >
                                 <div class="flex items-center gap-3">
                                     <img
@@ -72,7 +72,7 @@
                                             user.gitHubAvatarUrl ||
                                             `https://github.com/${user.gitHubUsername}.png`
                                         "
-                                        class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-600"
+                                        class="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600"
                                     />
                                     <span
                                         class="font-bold text-gray-900 dark:text-white"
@@ -89,11 +89,11 @@
             </div>
 
             <div
-                class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm"
+                class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
             >
                 <!-- Owner Section -->
                 <div
-                    class="p-4 bg-gray-50/50 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-700"
+                    class="p-4 bg-gray-100/50 dark:bg-gray-900/20 border-b border-gray-200 dark:border-gray-700"
                 >
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -120,7 +120,7 @@
                                     }}
                                 </div>
                                 <div
-                                    class="text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                                    class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest"
                                 >
                                     Repository Creator
                                 </div>
@@ -130,10 +130,10 @@
                 </div>
 
                 <!-- Auditors List -->
-                <div class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                <div class="divide-y divide-gray-100 dark:divide-gray-700/50">
                     <div
                         v-if="!props.repo.auditors?.length"
-                        class="p-8 text-center text-gray-400 text-sm italic"
+                        class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm italic"
                     >
                         No additional auditors have been assigned.
                     </div>
@@ -141,7 +141,7 @@
                     <div
                         v-for="auditor in props.repo.auditors"
                         :key="auditor.id"
-                        class="p-4 flex items-center justify-between hover:bg-gray-50/30 dark:hover:bg-gray-700/10 transition-colors"
+                        class="p-4 flex items-center justify-between hover:bg-gray-100/30 dark:hover:bg-gray-700/10 transition-colors"
                     >
                         <div class="flex items-center gap-3">
                             <img
@@ -149,7 +149,7 @@
                                     auditor.gitHubAvatarUrl ||
                                     `https://github.com/${auditor.gitHubUsername}.png`
                                 "
-                                class="w-10 h-10 rounded-full border border-gray-100 dark:border-gray-700"
+                                class="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700"
                             />
                             <div>
                                 <div
@@ -158,7 +158,7 @@
                                     {{ auditor.gitHubUsername }}
                                 </div>
                                 <div
-                                    class="text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                                    class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest"
                                 >
                                     Authorized Reviewer
                                 </div>
@@ -167,7 +167,7 @@
                         <button
                             v-if="props.user.id === props.repo.ownerId"
                             @click="handleRemoveAuditor(auditor.id)"
-                            class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                            class="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                             title="Remove Auditor"
                         >
                             <i class="pi pi-trash"></i>

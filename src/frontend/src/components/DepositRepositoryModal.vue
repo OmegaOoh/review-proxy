@@ -97,10 +97,10 @@ watch(
             @click.self="emit('close')"
         >
             <div
-                class="bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+                class="bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
                 <div
-                    class="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shrink-0"
+                    class="p-8 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0"
                 >
                     <h3
                         class="text-2xl font-extrabold text-gray-900 dark:text-white"
@@ -109,7 +109,7 @@ watch(
                     </h3>
                     <button
                         @click="emit('close')"
-                        class="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+                        class="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
                     >
                         <i class="pi pi-times text-xl"></i>
                     </button>
@@ -131,13 +131,13 @@ watch(
 
                         <div>
                             <label
-                                class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2"
+                                class="block text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400 mb-2"
                                 >Short Description</label
                             >
                             <textarea
                                 v-model="depositForm.description"
                                 rows="2"
-                                class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                                class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
                                 placeholder="What is this repository for?"
                             ></textarea>
                         </div>
@@ -150,7 +150,7 @@ watch(
                 </div>
 
                 <div
-                    class="p-8 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0"
+                    class="p-8 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 shrink-0"
                 >
                     <button
                         type="button"
