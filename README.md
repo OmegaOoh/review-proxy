@@ -137,3 +137,7 @@ The project includes a utility script to manage the development environment.
     ```bash
     ./scripts/dev.sh down
     ```
+
+## Known Issues/Risk
+1. GitHub Sync Failures: Issues might occasionally fail to sync correctly to GitHub. This can be mitigated in the future by implementing a write-back mechanism that reports failures to the user via an asynchronous message (stored in the Issue DB), allowing the auditor or owner to trigger a manual resync.
+2. Eventual Consistency Delays: If the Message Broker fails to deliver a message, or a consumer fails to process it correctly, repository data (like auditor lists) may temporarily fall out of sync. Currently, users can resolve this by making a small adjustment to the auditors list to trigger a fresh syncing message.
