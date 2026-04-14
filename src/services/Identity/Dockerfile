@@ -14,4 +14,4 @@ COPY --from=build-env /app/out .
 ENV ASPNETCORE_HTTP_PORTS=8000
 EXPOSE 8000
 
-ENTRYPOINT ["dotnet", "identity.dll"]
+ENTRYPOINT ["dotnet", "Identity.dll"]

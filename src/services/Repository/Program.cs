@@ -8,8 +8,8 @@ using Repository.APIs;
 using Repository.Events.Producers;
 using MassTransit;
 using ReviewProxy.Contracts;
-using repository.Interfaces.Clients;
-using repository.Clients;
+using Repository.Interfaces.Clients;
+using Repository.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
