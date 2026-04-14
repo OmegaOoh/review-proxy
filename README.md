@@ -1,6 +1,6 @@
 # Review Proxy
 
-Review Proxy is a microservices platform designed to streamline the management and auditing of GitHub repository issues. It allows repository owners to deposit their projects and assign auditors to review issues on their repository, ensuring a structured audit workflow, approved issues can be post automatically to GitHub issue.
+Review Proxy is a microservices platform designed to streamline the management and auditing of GitHub repository issues. It allows repository owners to deposit their projects and assign specialized auditors to review specific issues, ensuring a structured audit workflow.
 
 ## System Architecture
 
@@ -18,7 +18,7 @@ The application follows a distributed microservices pattern:
 
 *   **Owners**: Users who register repositories in the system. They have permission to manage repository settings and assign auditors to their projects.
 *   **Auditors**: Specialized users assigned to repositories. They are responsible for reviewing issues and updating audit statuses.
-*   **Registered Users**: Any user authenticated via GitHub who can browse repositories and view audit progress as well as post new issue to deposited repository.
+*   **Registered Users**: Any user authenticated via GitHub who can browse repositories and view audit progress.
 
 ## Technology Stack
 
@@ -43,18 +43,32 @@ Review Proxy uses a single GitHub App to handle both user authentication (OAuth)
 4.  **Private Key**: Generate a private key and download the `.pem` file to your host machine.
 5.  **Secrets**: Generate a Client Secret.
 
-## Installation and Setup
+## Environment Variables
 
-### Prerequisites
-Ensure you have .NET 10 SDK, Docker, and Bun installed on your machine.
+Configure these variables in your `.env` file or environment settings.
 
-### Environment Setup
-Create a `.env` file in the root directory by copying `sample.env`. Use the credentials from your single GitHub App for all fields:
-*   `GitHub__ClientId`: Your GitHub App Client ID.
-*   `GitHub__ClientSecret`: Your GitHub App Client Secret.
-*   `GitHub__AppId`: Your GitHub App ID.
-*   `GitHub__AppSlug`: Your GitHub App slug.
-*   `GitHub__PrivateKeyPath`: The path to your `.pem` file.
+### Required (GitHub App)
+*   **GitHub__ClientId**: Your GitHub App Client ID.
+*   **GitHub__ClientSecret**: Your GitHub App Client Secret.
+*   **GitHub__AppId**: Your GitHub App ID.
+*   **GitHub__AppSlug**: Your GitHub App slug (found in the app public link).
+*   **GitHub__PrivateKeyPath**: The path to your GitHub App `.pem` private key.
+
+### Security and Internal Communication
+*   **Services__InternalSecret**: A shared secret key used to authorize internal requests between microservices (e.g., Syncing to Identity). This should be a long, random string in production.
+*   **Jwt__Key**: Secret key used for signing and validating internal JSON Web Tokens.
+
+### Frontend
+*   **VITE_API_URL**: The URL of the API Gateway (e.g. `http://localhost:8000`).
+
+### Infrastructure and Database (Optional Overrides)
+*   **MassTransit__Host**: Connection string for RabbitMQ (default: `rabbitmq://localhost:5672`).
+*   **MassTransit__Username**: RabbitMQ username (default: `guest`).
+*   **MassTransit__Password**: RabbitMQ password (default: `guest`).
+*   **IdentityDbConnection**: PostgreSQL connection string for the Identity service.
+*   **IssueDbContext**: PostgreSQL connection string for the Issue service.
+*   **RepoDbConnection**: PostgreSQL connection string for the Repository service.
+*   **ASPNETCORE_ENVIRONMENT**: Set to `compose` for Docker or `Development` for local runs.
 
 ## Production Considerations
 
@@ -62,11 +76,12 @@ When moving beyond a local development environment, keep the following in mind:
 
 *   **Security**: Ensure all public endpoints (Gateway and Frontend) are served over HTTPS. Update your GitHub App Callback URL and Homepage URL accordingly.
 *   **Secrets Management**: Do not store `.env` files or `.pem` keys in source control. Use a secure vault or environment injection provided by your hosting platform.
+*   **Internal Communication**: Always set a strong `Services__InternalSecret` to prevent unauthorized internal API access.
 *   **Database Reliability**: Configure managed PostgreSQL instances or ensure robust backup strategies for the Docker volumes.
 *   **Scaling**: The microservices can be scaled independently. Ensure RabbitMQ is configured with high availability if needed.
 *   **Monitoring**: Implement centralized logging and health checks for each service to monitor the distributed system effectively.
 
-## How to Run (Development)
+## How to Run
 
 The project includes a utility script to manage the development environment.
 
