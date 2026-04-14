@@ -4,7 +4,6 @@ graph TD
     classDef gateway fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,color:#000;
     classDef microservice fill:#d5e8d4,stroke:#82b366,stroke-width:2px,color:#000;
     classDef database fill:#fff2cc,stroke:#d6b656,stroke-width:2px,color:#000;
-    classDef queue fill:#e1d5e7,stroke:#9673a6,stroke-width:2px,color:#000;
     classDef external fill:#f5f5f5,stroke:#666666,stroke-width:2px,stroke-dasharray: 5 5,color:#000;
 
     %% User and Entry Points
@@ -31,11 +30,6 @@ graph TD
         IssueDB[(issue_db)]:::database
     end
 
-    %% Message Broker
-    subgraph MessageQueue [Message Queue]
-        RabbitMQ[[RabbitMQ]]:::queue
-    end
-
     %% External Services
     GitHub([GitHub API]):::external
 
@@ -55,11 +49,11 @@ graph TD
     Repo -->|Reads/Writes| RepoDB
     Issue -->|Reads/Writes| IssueDB
 
-    %% Connections - Message Queue
-    Repo <-->|Publishes/Subscribes| RabbitMQ
-    Issue <-->|Publishes/Subscribes| RabbitMQ
-    Syncing <-->|Publishes/Subscribes| RabbitMQ
+    %% Connections - Async Message Exchange (Dashed Lines)
+    Repo -.->|RepositoryDeletedEvent| Issue
+    Repo -.->|SyncAuditorListEvent| Syncing
+    Issue -.->|IssueApprovalEvent| Syncing
 
     %% Connections - Internal Dependencies & External
-    Syncing -->|Depends on| Identity
+    Syncing -->|Depends on | Identity
     Syncing -->|Fetches/Updates| GitHub
