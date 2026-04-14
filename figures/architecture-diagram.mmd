@@ -1,0 +1,65 @@
+graph TD
+    %% Define Classes/Colors
+    classDef userFrontend fill:#dcefff,stroke:#4a90e2,stroke-width:2px,color:#000;
+    classDef gateway fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,color:#000;
+    classDef microservice fill:#d5e8d4,stroke:#82b366,stroke-width:2px,color:#000;
+    classDef database fill:#fff2cc,stroke:#d6b656,stroke-width:2px,color:#000;
+    classDef queue fill:#e1d5e7,stroke:#9673a6,stroke-width:2px,color:#000;
+    classDef external fill:#f5f5f5,stroke:#666666,stroke-width:2px,stroke-dasharray: 5 5,color:#000;
+
+    %% User and Entry Points
+    User([User / Browser]):::userFrontend
+
+    %% Frontend
+    Frontend[Frontend]:::userFrontend
+
+    %% Gateway
+    Gateway[Gateway]:::gateway
+
+    %% Microservices
+    subgraph Microservices [Microservices]
+        Identity[Identity Service]:::microservice
+        Repo[Repository Service]:::microservice
+        Issue[Issue Service]:::microservice
+        Syncing[Syncing Service]:::microservice
+    end
+
+    %% Databases
+    subgraph Databases [PostgreSQL Databases]
+        IdentityDB[(identity_db)]:::database
+        RepoDB[(repo_db)]:::database
+        IssueDB[(issue_db)]:::database
+    end
+
+    %% Message Broker
+    subgraph MessageQueue [Message Queue]
+        RabbitMQ[[RabbitMQ]]:::queue
+    end
+
+    %% External Services
+    GitHub([GitHub API]):::external
+
+    %% Connections - Entry
+    User -->|Accesses UI| Frontend
+    User -->|API Requests| Gateway
+    Frontend -.->|VITE_API_URL| Gateway
+
+    %% Connections - Gateway Routing
+    Gateway -->|Routes traffic| Identity
+    Gateway -->|Routes traffic| Repo
+    Gateway -->|Routes traffic| Issue
+    Gateway -->|Routes traffic| Syncing
+
+    %% Connections - DBs
+    Identity -->|Reads/Writes| IdentityDB
+    Repo -->|Reads/Writes| RepoDB
+    Issue -->|Reads/Writes| IssueDB
+
+    %% Connections - Message Queue
+    Repo <-->|Publishes/Subscribes| RabbitMQ
+    Issue <-->|Publishes/Subscribes| RabbitMQ
+    Syncing <-->|Publishes/Subscribes| RabbitMQ
+
+    %% Connections - Internal Dependencies & External
+    Syncing -->|Depends on| Identity
+    Syncing -->|Fetches/Updates| GitHub
