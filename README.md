@@ -120,24 +120,24 @@ When moving beyond a local development environment, keep the following in mind:
 
 ## How to Run
 
-The project includes a utility script to manage the development environment.
+The project uses Docker Compose to manage the development environment.
 
 1.  **Start the system**:
     ```bash
-    ./scripts/dev.sh up
+    docker compose up -d
     ```
 2.  **Access the application**:
     Open your browser and navigate to `http://localhost:3000`.
 3.  **View logs**:
     If you need to troubleshoot, use:
     ```bash
-    ./scripts/dev.sh logs [service-name]
+    docker compose logs -f [service-name]
     ```
 4.  **Stop the system**:
     ```bash
-    ./scripts/dev.sh down
+    docker compose down
     ```
 
 ## Known Issues/Risk
 1. GitHub Sync Failures: Issues might occasionally fail to sync correctly to GitHub. This can be mitigated in the future by implementing a write-back mechanism that reports failures to the user via an asynchronous message (stored in the Issue DB), allowing the auditor or owner to trigger a manual resync.
-2. Eventual Consistency Delays: If the Message Broker fails to deliver a message, or a consumer fails to process it correctly, repository data (like auditor lists) may temporarily fall out of sync. Currently, users can resolve this by making a small adjustment to the auditors list to trigger a fresh syncing message.
+2. Eventual Consistency Delays: If the Message Broker fails to deliver a message, or a consumer fails to process it correctly, repository data (like auditor lists) may temporarily fall out of sync. Currently, users can resolve this by making a small adjustment to the auditors list to trigger a fresh syncing message. 
